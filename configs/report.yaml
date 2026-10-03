@@ -1,0 +1,36 @@
+# 결과 표의 행. 각 행은 reports/metrics/{metrics}.json, reports/throughput/{throughput}.json을 읽는다.
+# 파일이 없으면 그 칸은 '측정 전'으로 남는다.
+rows:
+  - name: KoELECTRA + Dual KR-BERT 앙상블 (원 프로젝트)
+    metrics: encoder_ensemble
+    throughput: encoder_ensemble
+  - name: kanana-1.5-2.1b 제로샷
+    metrics: zeroshot_kanana-1.5-2.1b
+  - name: kanana-1.5-2.1b 퓨샷 (클래스당 1)
+    metrics: fewshot_kanana-1.5-2.1b
+  - name: kanana-1.5-2.1b LoRA bf16
+    metrics: lora_kanana-1.5-2.1b_bf16
+    throughput: lora_kanana-1.5-2.1b_bf16
+  - name: kanana-1.5-2.1b LoRA AWQ 4bit
+    metrics: lora_kanana-1.5-2.1b_awq
+    throughput: lora_kanana-1.5-2.1b_awq
+  - name: Qwen3-4B 제로샷
+    metrics: zeroshot_qwen3-4b
+  - name: Qwen3-4B 퓨샷 (클래스당 1)
+    metrics: fewshot_qwen3-4b
+  - name: Qwen3-4B LoRA bf16
+    metrics: lora_qwen3-4b_bf16
+    throughput: lora_qwen3-4b_bf16
+  - name: Qwen3-4B LoRA AWQ 4bit
+    metrics: lora_qwen3-4b_awq
+    throughput: lora_qwen3-4b_awq
+  - name: Midm-2.0-Mini 제로샷
+    metrics: zeroshot_midm-2.0-mini
+  - name: Midm-2.0-Mini 퓨샷 (클래스당 1)
+    metrics: fewshot_midm-2.0-mini
+  - name: Midm-2.0-Mini LoRA bf16
+    metrics: lora_midm-2.0-mini_bf16
+    throughput: lora_midm-2.0-mini_bf16
+  - name: Midm-2.0-Mini LoRA AWQ 4bit
+    metrics: lora_midm-2.0-mini_awq
+    throughput: lora_midm-2.0-mini_awq
