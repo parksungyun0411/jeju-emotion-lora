@@ -1,0 +1,46 @@
+[project]
+name = "jeju-emotion-lora"
+version = "0.1.0"
+description = "제주어 7감정 분류: LoRA 소형 LLM 대 KoELECTRA 앙상블, AWQ 4bit·vLLM 건당 비용 비교"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scikit-learn>=1.4",
+    "openpyxl>=3.1",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+# 학습·병합·양자화 환경 (CUDA). 정확한 고정 버전은 requirements/train.txt
+train = [
+    "torch>=2.10,<=2.14.0",
+    "transformers>=5.15,<=5.17.0",
+    "peft>=0.21",
+    "trl>=1.14",
+    "accelerate>=1.15",
+    "datasets>=4.8.4",
+    "llmcompressor>=0.14",
+]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["smoke: 작은 랜덤 모델로 학습 경로만 확인 (torch 필요, 네트워크 불필요)"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

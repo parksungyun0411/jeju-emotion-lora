@@ -1,0 +1,31 @@
+# 후보 모델. 라이선스는 각 모델 카드의 license 메타데이터와 LICENSE 파일 첫 줄로 확인했다.
+# revision은 확인 당시 main 커밋. 학습·평가는 이 커밋으로 고정한다.
+verified_on: "2026-10-03"
+allowed_licenses: [apache-2.0, mit]
+
+models:
+  kanana-1.5-2.1b:
+    hf_id: kakaocorp/kanana-1.5-2.1b-instruct-2505
+    revision: 7df4bc35ccd610e451809d7106e1c3cf82bfd44c
+    license: apache-2.0
+    architecture: LlamaForCausalLM
+    card: https://huggingface.co/kakaocorp/kanana-1.5-2.1b-instruct-2505
+  qwen3-4b:
+    # Qwen3-4B 계열 중 사고(thinking) 블록이 없는 Instruct-2507을 쓴다. 라이선스는 같다.
+    hf_id: Qwen/Qwen3-4B-Instruct-2507
+    revision: cdbee75f17c01a7cc42f958dc650907174af0554
+    license: apache-2.0
+    architecture: Qwen3ForCausalLM
+    card: https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507
+  midm-2.0-mini:
+    hf_id: K-intelligence/Midm-2.0-Mini-Instruct
+    revision: 383eb221c52a32278f1985257b264ade8d982e60
+    license: mit
+    architecture: LlamaForCausalLM
+    card: https://huggingface.co/K-intelligence/Midm-2.0-Mini-Instruct
+
+excluded:
+  exaone-4.0-1.2b:
+    hf_id: LGAI-EXAONE/EXAONE-4.0-1.2B
+    license: "other (EXAONE AI Model License Agreement 1.2 - NC)"
+    reason: 비상업 라이선스
