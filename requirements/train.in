@@ -1,0 +1,13 @@
+torch==2.14.0
+transformers==5.17.0
+peft==0.21.2
+trl==1.14.1
+accelerate==1.15.0
+datasets==5.0.1
+llmcompressor==0.14.0
+numpy
+pandas
+scikit-learn
+openpyxl
+pyyaml
+httpx

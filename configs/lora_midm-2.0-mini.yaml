@@ -1,0 +1,22 @@
+# LoRA r=16, 학습 데이터 100%, 1 epoch. 랭크 비교·데이터 효율 곡선은 이번 범위에서 뺐다.
+model: midm-2.0-mini
+input_mode: jeju
+seed: 42
+output_dir: outputs/lora/midm-2.0-mini
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: all-linear
+train:
+  epochs: 1
+  learning_rate: 2.0e-4
+  per_device_batch_size: 32
+  grad_accum: 1
+  warmup_ratio: 0.03
+  lr_scheduler: cosine
+  max_length: 256
+  max_train_samples: null
+  max_eval_samples: 2000
+  gradient_checkpointing: true
+  bf16: true
