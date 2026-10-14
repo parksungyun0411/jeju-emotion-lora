@@ -22,7 +22,12 @@ from jeju_lora.data import (
     stratified_split_712,
 )
 
-DEFAULT_ORIGINAL_REPO = Path.home() / "Desktop/Projects/jeju-emotion-analysis"
+# 원 저장소 위치. 2026-10-14 기준 이 Mac에서는 ~/Documents/GitHub/personal 아래에 있다.
+_CANDIDATES = [
+    Path.home() / "Documents/GitHub/personal/jeju-emotion-analysis",
+    Path.home() / "Desktop/Projects/jeju-emotion-analysis",
+]
+DEFAULT_ORIGINAL_REPO = next((c for c in _CANDIDATES if c.exists()), _CANDIDATES[0])
 ORIGINAL_FILE = "src/jeju_kr_bert.py"
 # 원 저장소 docs/bert_improvement_report.md에 적힌 분할 크기
 ORIGINAL_SIZES = {"train": 89_118, "val": 12_732, "test": 25_463}

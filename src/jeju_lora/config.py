@@ -60,6 +60,8 @@ class TrainSection:
     max_eval_samples: int = 2000
     gradient_checkpointing: bool = True
     bf16: bool = True
+    # T4처럼 bf16이 없는 GPU용. bf16과 함께 켤 수 없다
+    fp16: bool = False
     logging_steps: int = 20
     eval_steps: int = 500
     save_steps: int = 500
@@ -104,6 +106,8 @@ def validate(cfg: TrainConfig, models: dict[str, ModelSpec]) -> None:
         raise ConfigError("train.max_length가 너무 짧다 (프롬프트만 60토큰 안팎)")
     if tr.max_train_samples is not None and tr.max_train_samples <= 0:
         raise ConfigError("train.max_train_samples는 양수 또는 null")
+    if tr.bf16 and tr.fp16:
+        raise ConfigError("train.bf16과 train.fp16은 함께 켤 수 없다")
 
 
 def load_train_config(path: str | Path, models_path: str | Path = MODELS_YAML) -> TrainConfig:

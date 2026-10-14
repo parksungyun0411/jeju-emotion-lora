@@ -19,6 +19,13 @@ from jeju_lora.data import read_jsonl
 from jeju_lora.prompts import to_sft_record
 
 
+def model_dtype(tr) -> str:
+    """기반 가중치 dtype. fp16 학습에서도 LoRA 어댑터는 PEFT가 fp32로 올린다."""
+    if tr.bf16:
+        return "bfloat16"
+    return "float16" if tr.fp16 else "float32"
+
+
 def build_datasets(cfg, train_path: str, val_path: str):
     from datasets import Dataset
 
@@ -51,6 +58,7 @@ def make_trainer(cfg, model_id: str, revision: str | None, train_ds, eval_ds, **
         max_length=tr.max_length,
         gradient_checkpointing=tr.gradient_checkpointing,
         bf16=tr.bf16,
+        fp16=tr.fp16,
         logging_steps=tr.logging_steps,
         eval_strategy="steps",
         eval_steps=tr.eval_steps,
@@ -59,7 +67,7 @@ def make_trainer(cfg, model_id: str, revision: str | None, train_ds, eval_ds, **
         save_total_limit=2,
         completion_only_loss=True,
         report_to="none",
-        model_init_kwargs={"revision": revision, "dtype": "bfloat16" if tr.bf16 else "float32"},
+        model_init_kwargs={"revision": revision, "dtype": model_dtype(tr)},
         **overrides,
     )
     peft_config = LoraConfig(

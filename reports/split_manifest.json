@@ -1,0 +1,21 @@
+{
+  "source_file": "merged_jeju_balanced_sorted.xlsx",
+  "seed": 42,
+  "sklearn_version": "1.9.1",
+  "sizes": {
+    "train": 89114,
+    "val": 12731,
+    "test": 25462
+  },
+  "label_counts_test": {
+    "0": 3599,
+    "1": 3423,
+    "2": 3439,
+    "3": 3568,
+    "4": 3722,
+    "5": 4086,
+    "6": 3625
+  },
+  "test_row_ids_sha256": "817f200d34cd05e73045a18c20aded4d6603899df5b78d6533d2b37c4b82be46",
+  "val_row_ids_sha256": "1474fccfb099174db2d852a260f49c36c46303f31dba7d578d2e27c68ce76d6a"
+}

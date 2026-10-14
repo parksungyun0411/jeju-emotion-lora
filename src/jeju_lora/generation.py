@@ -17,6 +17,13 @@ import httpx
 from jeju_lora.labels import LABEL_NAMES
 
 
+def auto_dtype(torch, device: str):
+    """bf16을 지원하는 GPU는 bf16, T4 같은 GPU는 fp16, CPU는 fp32."""
+    if device != "cuda":
+        return torch.float32
+    return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+
+
 class Backend(Protocol):
     def generate(self, batch: list[list[dict]]) -> list[str]: ...
 
@@ -85,7 +92,7 @@ class HFBackend:
         if self.tok.pad_token is None:
             self.tok.pad_token = self.tok.eos_token
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        dtype = torch.bfloat16 if device == "cuda" else torch.float32
+        dtype = auto_dtype(torch, device)
         model = AutoModelForCausalLM.from_pretrained(model_path, revision=revision, dtype=dtype)
         if adapter:
             from peft import PeftModel
