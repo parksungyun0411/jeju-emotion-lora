@@ -17,6 +17,7 @@ import httpx
 
 from jeju_lora.data import read_jsonl
 from jeju_lora.generation import OpenAIChatBackend
+from jeju_lora.predict import DEFAULT_TEST, split_name
 from jeju_lora.prompts import build_messages
 
 
@@ -79,12 +80,13 @@ def main() -> None:
     p.add_argument("--base-url", default="http://localhost:8000/v1")
     p.add_argument("--model", required=True)
     p.add_argument("--tag", required=True)
-    p.add_argument("--data", default="data/splits/test.jsonl")
+    p.add_argument("--data", default=DEFAULT_TEST)
     p.add_argument("--n", type=int, default=5000, help="측정 문항 수 (warmup 제외)")
     p.add_argument("--warmup", type=int, default=200)
     p.add_argument("--concurrency", type=int, default=64)
     p.add_argument("--input-mode", default="jeju")
     p.add_argument("--gpu", default="", help="기록용 GPU 이름 (예: RTX 4090)")
+    p.add_argument("--precision", default=None, help="기록용 서버 dtype (예: fp16, awq-w4a16)")
     p.add_argument("--out-dir", default="reports/throughput")
     args = p.parse_args()
 
@@ -98,6 +100,9 @@ def main() -> None:
         model=args.model,
         concurrency=args.concurrency,
         gpu=args.gpu,
+        precision=args.precision,
+        split=split_name(args.data),
+        n_requested=args.n,
         measured_at=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
     )
     Path(args.out_dir).mkdir(parents=True, exist_ok=True)

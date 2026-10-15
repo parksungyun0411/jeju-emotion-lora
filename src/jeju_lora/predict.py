@@ -16,9 +16,16 @@ from jeju_lora.labels import parse_label
 from jeju_lora.metrics import classification_metrics
 from jeju_lora.prompts import build_messages, pick_few_shot
 
-DEFAULT_TEST = "data/splits/test.jsonl"
-DEFAULT_TRAIN = "data/splits/train.jsonl"
+# 원 행 단위 분할(data/splits)은 test의 70.4%가 train과 같은 문장이라(reports/leakage.md)
+# 기본 평가는 문장 단위 분할로 한다
+DEFAULT_TEST = "data/splits_sentence/test.jsonl"
+DEFAULT_TRAIN = "data/splits_sentence/train.jsonl"
 DEFAULT_GOLD = "reviews/gold.jsonl"
+
+
+def split_name(data_path: str | Path) -> str:
+    """평가 파일이 든 폴더 이름 (splits_sentence = 문장 단위, splits = 원 행 단위)."""
+    return Path(data_path).parent.name
 
 
 def run_predictions(backend, items: list[dict], input_mode: str, shots: list[dict]) -> list[dict]:
@@ -95,6 +102,7 @@ def main() -> None:
     p.add_argument("--input-mode", default="jeju")
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--tag", required=True)
+    p.add_argument("--precision", default=None, help="openai: 기록용 서버 dtype (예: fp16)")
     p.add_argument("--pred-dir", default="outputs/predictions")
     p.add_argument("--metrics-dir", default="reports/metrics")
     args = p.parse_args()
@@ -119,6 +127,7 @@ def main() -> None:
         from jeju_lora.generation import HFBackend
 
         backend = HFBackend(args.model, adapter=args.adapter, revision=args.revision)
+        args.precision = backend.precision
 
     t0 = time.perf_counter()
     preds = run_predictions(backend, items, args.input_mode, shots)
@@ -134,6 +143,8 @@ def main() -> None:
         "input_mode": args.input_mode,
         "constrained": args.backend == "openai" and not args.no_constrained,
         "data": args.data,
+        "split": split_name(args.data),
+        "precision": args.precision,
         "elapsed_s": elapsed,
         **score(preds, gold),
     }

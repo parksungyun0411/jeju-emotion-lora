@@ -83,3 +83,11 @@ def test_rescore_adds_human_scores_later(items, tmp_path):
     assert updated == ["x"]
     out = json.loads((tmp_path / "m" / "x.json").read_text())
     assert out["tag"] == "x" and out["human_label"]["n"] == 2
+
+
+def test_default_eval_is_sentence_split():
+    from jeju_lora.predict import DEFAULT_TEST, DEFAULT_TRAIN, split_name
+
+    # 원 행 단위 분할은 test 문장의 70.4%가 train에 있어(reports/leakage.md) 기본값이 아니다
+    assert split_name(DEFAULT_TEST) == split_name(DEFAULT_TRAIN) == "splits_sentence"
+    assert split_name("data/splits/test.jsonl") == "splits"

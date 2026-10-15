@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 
 from jeju_lora.data import read_jsonl
+from jeju_lora.predict import DEFAULT_TEST, split_name
 
 DEFAULT_ENCODERS = [
     # (이름, HF ID, 1건당 순전파 횟수, 입력 열)
@@ -31,14 +32,26 @@ def ensemble_items_per_s(parts: list[tuple[int, float]]) -> float:
     return 1.0 / sum(p / t for p, t in parts)
 
 
+def precision() -> str:
+    """measure()가 쓰는 dtype 이름 (bf16이 없는 GPU는 fp16)."""
+    import torch
+
+    from jeju_lora.generation import auto_dtype, dtype_name
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    return dtype_name(torch, auto_dtype(torch, device))
+
+
 def measure(hf_id: str, texts: list[str], batch_size: int, max_length: int, warmup: int) -> float:
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+    from jeju_lora.generation import auto_dtype
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     tok = AutoTokenizer.from_pretrained(hf_id)
     model = AutoModelForSequenceClassification.from_pretrained(hf_id, num_labels=7)
-    model = model.to(device, dtype=torch.bfloat16 if device == "cuda" else torch.float32).eval()
+    model = model.to(device, dtype=auto_dtype(torch, device)).eval()
 
     def run(chunk_texts):
         for i in range(0, len(chunk_texts), batch_size):
@@ -66,7 +79,7 @@ def main() -> None:
     import argparse
 
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--data", default="data/splits/test.jsonl")
+    p.add_argument("--data", default=DEFAULT_TEST)
     p.add_argument("--n", type=int, default=5000)
     p.add_argument("--batch-size", type=int, default=128)
     p.add_argument("--max-length", type=int, default=64, help="원 프로젝트 기본값")
@@ -93,6 +106,9 @@ def main() -> None:
         "items_per_s": ensemble_items_per_s(parts),
         "latency_p95_s": None,
         "batch_size": args.batch_size,
+        "precision": precision(),
+        "split": split_name(args.data),
+        "n": len(items),
         "encoders": per_encoder,
         "gpu": args.gpu,
         "measured_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),

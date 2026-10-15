@@ -48,7 +48,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--model-dir", required=True)
     p.add_argument("--out", required=True)
-    p.add_argument("--train", default="data/splits/train.jsonl")
+    p.add_argument("--train", default="data/splits_sentence/train.jsonl")
     p.add_argument("--num-samples", type=int, default=256)
     p.add_argument("--max-seq-length", type=int, default=256)
     p.add_argument("--input-mode", default="jeju")

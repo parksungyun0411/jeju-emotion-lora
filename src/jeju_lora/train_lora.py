@@ -92,8 +92,8 @@ def main() -> None:
 
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--config", required=True)
-    p.add_argument("--train", default="data/splits/train.jsonl")
-    p.add_argument("--val", default="data/splits/val.jsonl")
+    p.add_argument("--train", default="data/splits_sentence/train.jsonl")
+    p.add_argument("--val", default="data/splits_sentence/val.jsonl")
     p.add_argument("--model-path", default=None, help="HF ID 대신 쓸 로컬 경로 (스모크용)")
     p.add_argument("--max-steps", type=int, default=None, help="스모크용 상한")
     args = p.parse_args()

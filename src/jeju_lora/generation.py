@@ -24,6 +24,11 @@ def auto_dtype(torch, device: str):
     return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
 
+def dtype_name(torch, dtype) -> str:
+    """결과 파일에 남기는 정밀도 이름."""
+    return {torch.bfloat16: "bf16", torch.float16: "fp16"}.get(dtype, "fp32")
+
+
 class Backend(Protocol):
     def generate(self, batch: list[list[dict]]) -> list[str]: ...
 
@@ -102,6 +107,7 @@ class HFBackend:
 
             model = PeftModel.from_pretrained(model, adapter)
         self.model = model.to(device).eval()
+        self.precision = dtype_name(torch, dtype)
         self.device = device
         self.batch_size = batch_size
         self.max_new_tokens = max_new_tokens
