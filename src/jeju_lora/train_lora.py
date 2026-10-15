@@ -14,6 +14,7 @@ import random
 from dataclasses import asdict
 from pathlib import Path
 
+from jeju_lora import compat
 from jeju_lora.config import load_models, load_train_config
 from jeju_lora.data import read_jsonl
 from jeju_lora.prompts import to_sft_record
@@ -97,6 +98,7 @@ def main() -> None:
     p.add_argument("--max-steps", type=int, default=None, help="스모크용 상한")
     args = p.parse_args()
 
+    compat.apply()
     cfg = load_train_config(args.config)
     spec = load_models()[cfg.model]
     model_id = args.model_path or spec.hf_id

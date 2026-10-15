@@ -86,6 +86,9 @@ class HFBackend:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
+        from jeju_lora import compat
+
+        compat.apply()
         self.torch = torch
         self.tok = AutoTokenizer.from_pretrained(model_path, revision=revision)
         self.tok.padding_side = "left"

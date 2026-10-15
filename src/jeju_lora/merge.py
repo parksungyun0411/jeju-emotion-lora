@@ -9,11 +9,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from jeju_lora import compat
 from jeju_lora.config import load_models
 
 
 def merge(base: str, revision: str | None, adapter: str, out: str, dtype: str = "bfloat16") -> None:
     import torch
+
+    compat.apply()
     from peft import PeftModel
     from transformers import AutoModelForCausalLM, AutoTokenizer
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import random
 
+from jeju_lora import compat
 from jeju_lora.data import read_jsonl
 from jeju_lora.labels import EMOTION_LABELS
 from jeju_lora.prompts import build_messages
@@ -54,6 +55,7 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=42)
     args = p.parse_args()
 
+    compat.apply()
     from datasets import Dataset
     from llmcompressor import oneshot
     from transformers import AutoModelForCausalLM, AutoTokenizer

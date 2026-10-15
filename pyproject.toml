@@ -38,6 +38,10 @@ where = ["src"]
 testpaths = ["tests"]
 markers = ["smoke: 작은 랜덤 모델로 학습 경로만 확인 (torch 필요, 네트워크 불필요)"]
 
+# vLLM이 모든 프로세스에서 불러오는 플러그인: kanana 설정 검증 우회 (jeju_lora/compat.py)
+[project.entry-points."vllm.general_plugins"]
+jeju_lora_compat = "jeju_lora.compat:register"
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
