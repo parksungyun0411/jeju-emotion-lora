@@ -38,7 +38,9 @@ def sentence_split_for_original(data_path: str | Path):
     """원 코드의 stratified_split_712 자리에 넣을 함수. 원 코드가 넘기는 df는 쓰지 않고
     같은 파일을 이 저장소 방식(row_id 유지)으로 다시 읽어 문장 단위로 나눈다."""
     s = sentence_split(prepare_frame(read_table(data_path)))
-    frames = tuple(part[["row_id", *ORIGINAL_COLS]].reset_index(drop=True) for part in s)
+    frames = tuple(
+        part[["row_id", *ORIGINAL_COLS]].reset_index(drop=True) for part in (s.train, s.val, s.test)
+    )
 
     def split_fn(df, label_col="감정번호", seed=42):  # noqa: ARG001 — 원 함수와 같은 시그니처
         return tuple(f.copy() for f in frames)

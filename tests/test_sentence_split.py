@@ -67,3 +67,17 @@ def test_duplicate_profile_and_markdown():
     )
     assert "문장 단위 분할" in md and "중립" in md
     assert "문장 1" not in md  # 문장 원문은 보고서에 나오지 않는다
+
+
+def test_sentence_split_for_original_returns_original_columns(tmp_path):
+    from jeju_lora.run_original import ORIGINAL_COLS, sentence_split_for_original
+
+    path = tmp_path / "data.csv"
+    dup_frame().to_csv(path, index=False)
+    split_fn = sentence_split_for_original(path)
+    train, val, test = split_fn(None, seed=42)
+    for part in (train, val, test):
+        assert list(part.columns) == ["row_id", *ORIGINAL_COLS]
+    assert not set(train["제주어 문장"]) & set(test["제주어 문장"])
+    # 원 코드가 넘기는 df와 무관하게 같은 분할을 돌려준다
+    assert split_fn(dup_frame())[2]["row_id"].tolist() == test["row_id"].tolist()
