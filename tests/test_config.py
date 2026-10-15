@@ -64,3 +64,30 @@ def test_rejects_unpinned_revision(tmp_path):
     p.write_text(yaml.safe_dump(doc))
     with pytest.raises(ConfigError, match="revision"):
         load_models(p)
+
+
+T4_CONFIGS = sorted((Path(__file__).parents[1] / "configs" / "t4").glob("lora_*.yaml"))
+
+
+@pytest.mark.parametrize("path", T4_CONFIGS, ids=lambda p: p.name)
+def test_t4_configs_differ_only_in_precision_and_sample_cap(path):
+    """T4 설정은 24GB 설정에서 정밀도(fp16)와 학습 표본 상한만 바꾼다."""
+    t4 = load_train_config(path)
+    base = load_train_config(path.parents[1] / path.name)
+    assert t4.train.fp16 and not t4.train.bf16
+    changed = {f for f in vars(t4.train) if getattr(t4.train, f) != getattr(base.train, f)} - {
+        "fp16",
+        "bf16",
+        "max_train_samples",
+    }
+    assert changed == set()
+    assert (t4.model, t4.seed, t4.lora, t4.output_dir) == (
+        base.model,
+        base.seed,
+        base.lora,
+        base.output_dir,
+    )
+
+
+def test_t4_configs_exist_for_every_model():
+    assert {p.stem.removeprefix("lora_") for p in T4_CONFIGS} == set(load_models())

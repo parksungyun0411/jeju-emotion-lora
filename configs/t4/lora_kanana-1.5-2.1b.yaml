@@ -1,0 +1,25 @@
+# Colab T4(15GB, bf16 없음)용. configs/lora_kanana-1.5-2.1b.yaml과 정밀도(fp16)·학습 표본 수만 다르다.
+# 표본 수: kanana 전체 1 epoch(2,635스텝)가 T4에서 3.9~4.4 s/스텝으로 약 3h라(2026-10-15 실측)
+# train 84,307행 중 50,000행을 seed 42로 뽑아 1 epoch 학습한다. 세 모델 모두 같은 수로 맞춘다.
+model: kanana-1.5-2.1b
+input_mode: jeju
+seed: 42
+output_dir: outputs/lora/kanana-1.5-2.1b
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: all-linear
+train:
+  epochs: 1
+  learning_rate: 2.0e-4
+  per_device_batch_size: 32
+  grad_accum: 1
+  warmup_ratio: 0.03
+  lr_scheduler: cosine
+  max_length: 256
+  max_train_samples: 50000
+  max_eval_samples: 2000
+  gradient_checkpointing: true
+  bf16: false
+  fp16: true

@@ -96,6 +96,9 @@ def main() -> None:
     p.add_argument("--val", default="data/splits_sentence/val.jsonl")
     p.add_argument("--model-path", default=None, help="HF ID 대신 쓸 로컬 경로 (스모크용)")
     p.add_argument("--max-steps", type=int, default=None, help="스모크용 상한")
+    p.add_argument(
+        "--resume", action="store_true", help="output_dir의 마지막 체크포인트에서 이어 학습"
+    )
     args = p.parse_args()
 
     compat.apply()
@@ -107,7 +110,8 @@ def main() -> None:
     train_ds, eval_ds = build_datasets(cfg, args.train, args.val)
     overrides = {"max_steps": args.max_steps} if args.max_steps else {}
     trainer = make_trainer(cfg, model_id, revision, train_ds, eval_ds, **overrides)
-    result = trainer.train()
+    # Colab 세션이 끊기면 내려받아 둔 체크포인트를 올리고 --resume으로 잇는다
+    result = trainer.train(resume_from_checkpoint=True if args.resume else None)
     metrics = {**result.metrics, **trainer.evaluate()}
 
     adapter_dir = Path(cfg.output_dir) / "adapter"
@@ -123,6 +127,8 @@ def main() -> None:
                 "n_train": len(train_ds),
                 "n_eval": len(eval_ds),
                 "metrics": metrics,
+                # 손실 곡선 (fp16 학습의 발산·NaN 확인용)
+                "log_history": trainer.state.log_history,
             },
             ensure_ascii=False,
             indent=2,
