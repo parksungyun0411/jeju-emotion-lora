@@ -52,14 +52,62 @@ def test_rows_from_files(tmp_path):
     assert a["p95_ms"] == pytest.approx(250)
     assert a["f1_human"] is None
     md = render_markdown(rows, 0.72, "test-gpu")
-    assert "| A | 0.5000 | 측정 전 | 0.0000 | 200.0 | 250 | 1.00 |" in md
+    assert (
+        "| A | 측정 전 | 측정 전 | 측정 전 | 0.5000 | 측정 전 | 0.0000 | 200.0 | 250 | 1.00 |" in md
+    )
 
 
 def test_encoder_row_without_p95(tmp_path):
     (tmp_path / "throughput").mkdir()
     (tmp_path / "throughput" / "a.json").write_text(
-        json.dumps({"items_per_s": 1000.0, "latency_p95_s": None})
+        json.dumps({"items_per_s": 1000.0, "latency_p95_s": None, "system": "encoder"})
     )
     rows = build_rows(CFG, tmp_path, 3.6)
     md = render_markdown(rows, 3.6, "g")
-    assert "| A | 측정 전 | 측정 전 | 측정 전 | 1000.0 | — | 1.00 |" in md
+    assert (
+        "| A | 측정 전 | 측정 전 | PyTorch 배치 | 측정 전 | 측정 전 | 측정 전 | 1000.0 | — | 1.00 |"
+        in md
+    )
+
+
+def test_split_precision_backend_come_from_files(tmp_path):
+    (tmp_path / "metrics").mkdir()
+    (tmp_path / "throughput").mkdir()
+    machine = {"f1_macro": 0.6, "invalid_rate": 0.01}
+    (tmp_path / "metrics" / "a.json").write_text(
+        json.dumps(
+            {
+                "backend": "openai",
+                "constrained": True,
+                "split": "splits_sentence",
+                "precision": "fp16",
+                "machine_label": machine,
+            }
+        )
+    )
+    (tmp_path / "throughput" / "a.json").write_text(
+        json.dumps({"items_per_s": 10.0, "latency_p95_s": 1.5, "precision": "awq-w4a16"})
+    )
+    (tmp_path / "metrics" / "b.json").write_text(
+        json.dumps(
+            {"backend": "openai", "constrained": False, "split": "splits", "machine_label": machine}
+        )
+    )
+    rows = build_rows(CFG, tmp_path, None)
+    # 정밀도는 지표 파일 값이 먼저다
+    assert (rows[0]["split"], rows[0]["precision"], rows[0]["backend"]) == (
+        "문장 단위",
+        "fp16",
+        "vLLM",
+    )
+    assert (rows[1]["split"], rows[1]["backend"]) == ("원 행 단위", "vLLM (제약 없음)")
+    assert rows[0]["usd_per_million"] is None
+
+
+def test_not_run_rows_show_reason(tmp_path):
+    cfg = {"rows": [{"name": "C LoRA", "metrics": "c", "not_run": "T4 할당 한도"}]}
+    rows = build_rows(cfg, tmp_path, 0.1)
+    md = render_markdown(rows, 0.1, "T4", price_note="출처 X")
+    assert "| C LoRA |" + " 측정 안 함 |" * 9 in md
+    assert "- C LoRA: T4 할당 한도" in md
+    assert "요금 근거: 출처 X" in md

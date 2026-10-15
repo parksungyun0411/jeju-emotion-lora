@@ -16,6 +16,7 @@ ALPHA    ?=
 REVIEWER ?=
 GPU_NAME ?=
 GPU_USD_PER_HOUR ?=
+PRICE_NOTE ?=
 CONCURRENCY ?= 64
 
 HF_ID    = $(shell $(PY) -m jeju_lora.config $(MODEL) hf_id)
@@ -110,8 +111,8 @@ eval-lora: ## vLLM으로 F1(기계·사람 라벨) + 부하 측정 (MODEL=키 VA
 bench-encoder: ## KoELECTRA + KR-BERT 앙상블 처리량
 	$(TRAIN_PY) -m jeju_lora.bench_encoder --gpu "$(GPU_NAME)"
 
-report: ## reports/RESULTS.md 생성 (GPU_USD_PER_HOUR=값 GPU_NAME=이름)
-	$(PY) -m jeju_lora.cost --gpu-name "$(GPU_NAME)" \
+report: ## reports/RESULTS.md 생성 (GPU_USD_PER_HOUR=값 GPU_NAME=이름 PRICE_NOTE=요금 근거)
+	$(PY) -m jeju_lora.cost --gpu-name "$(GPU_NAME)" --price-note "$(PRICE_NOTE)" \
 	  $(if $(GPU_USD_PER_HOUR),--gpu-usd-per-hour $(GPU_USD_PER_HOUR),)
 
 rescore: ## 사람 검수가 끝난 뒤 저장된 예측으로 지표 재계산 (GPU 불필요)
