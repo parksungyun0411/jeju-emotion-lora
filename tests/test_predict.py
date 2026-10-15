@@ -39,7 +39,7 @@ def test_predictions_and_scores(items, tmp_path):
     gold = load_gold(gold_path)
     res = score(preds, gold)
     assert res["machine_label"]["accuracy"] == pytest.approx(1 - len(invalid) / len(items))
-    # 사람 라벨: row 1 → 정답(슬픔), row 2 → 모델은 행복, 사람은 중립 → 오답
+    # 사람 라벨: row 1 → 정답(행복), row 2 → 모델은 슬픔, 사람은 중립 → 오답
     assert res["human_label"]["n"] == 2
     assert res["human_label"]["accuracy"] == 0.5
 

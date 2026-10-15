@@ -65,7 +65,7 @@ def test_calibration_texts_use_train_with_answer(items):
     assert len(texts) == 10
     assert all(t.startswith("system:") for t in texts)
     assert all(
-        t.rsplit("assistant:", 1)[1] in {"중립", "슬픔", "행복", "분노", "놀람", "공포", "혐오"}
+        t.rsplit("assistant:", 1)[1] in {"중립", "행복", "슬픔", "분노", "놀람", "공포", "혐오"}
         for t in texts
     )
     assert texts == calibration_texts(StubTokenizer(), items, 10, "jeju", seed=0)

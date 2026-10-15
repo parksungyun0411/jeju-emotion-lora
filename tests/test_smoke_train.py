@@ -56,7 +56,7 @@ def test_train_merge_generate(tmp_path, items):
     from jeju_lora.train_lora import build_datasets, make_trainer
 
     base = tmp_path / "tiny"
-    corpus = [SYSTEM_PROMPT, "제주어 : 감정 :", *("중립 슬픔 행복 분노 놀람 공포 혐오".split())]
+    corpus = [SYSTEM_PROMPT, "제주어 : 감정 :", *("중립 행복 슬픔 분노 놀람 공포 혐오".split())]
     corpus += [it["jeju"] for it in items]
     _tiny_model(base, corpus)
 
@@ -100,7 +100,7 @@ def _tiny_setup(tmp_path, items):
     from jeju_lora.data import write_jsonl
 
     base = tmp_path / "tiny"
-    corpus = [SYSTEM_PROMPT, "제주어 : 감정 :", *("중립 슬픔 행복 분노 놀람 공포 혐오".split())]
+    corpus = [SYSTEM_PROMPT, "제주어 : 감정 :", *("중립 행복 슬픔 분노 놀람 공포 혐오".split())]
     corpus += [it["jeju"] for it in items]
     _tiny_model(base, corpus)
     write_jsonl(items, tmp_path / "train.jsonl")

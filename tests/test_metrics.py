@@ -13,7 +13,7 @@ def test_macro_f1_hand_computed():
     assert m["f1_macro"] == pytest.approx((2 / 3 + 0.8 + 2 / 3) / 3)
     assert m["accuracy"] == pytest.approx(4 / 6)
     assert m["invalid_rate"] == pytest.approx(1 / 6)
-    assert m["f1_per_class"] == pytest.approx({"중립": 2 / 3, "슬픔": 0.8, "행복": 2 / 3})
+    assert m["f1_per_class"] == pytest.approx({"중립": 2 / 3, "행복": 0.8, "슬픔": 2 / 3})
     # weighted: 지지도 2·2·2 → macro와 같다
     assert m["f1_weighted"] == pytest.approx(m["f1_macro"])
     assert m["confusion"][2][2] == 1 and sum(m["confusion"][2]) == 1  # -1은 행렬에서 빠진다

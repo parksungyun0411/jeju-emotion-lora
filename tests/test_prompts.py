@@ -29,7 +29,7 @@ def test_user_message_modes():
 def test_zero_shot_messages():
     msgs = build_messages(ITEM)
     assert [m["role"] for m in msgs] == ["system", "user"]
-    assert "행복" not in msgs[-1]["content"]  # 정답이 프롬프트에 새지 않는다
+    assert "슬픔" not in msgs[-1]["content"]  # 정답이 프롬프트에 새지 않는다
 
 
 def test_few_shot_balanced_deterministic(items):
@@ -46,5 +46,5 @@ def test_few_shot_balanced_deterministic(items):
 
 def test_sft_record():
     rec = to_sft_record(ITEM)
-    assert rec["completion"] == [{"role": "assistant", "content": "행복"}]
+    assert rec["completion"] == [{"role": "assistant", "content": "슬픔"}]
     assert rec["prompt"] == build_messages(ITEM)

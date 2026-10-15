@@ -1,7 +1,12 @@
 """감정 라벨 정의와 생성문 → 라벨 파싱.
 
-라벨 번호·이름은 원 프로젝트(jeju-emotion-analysis/src/jeju_kr_bert.py)의
-EMOTION_LABELS를 그대로 쓴다. README에는 '기쁨'으로 적혀 있지만 코드와 데이터는 '행복'이다.
+번호 → 이름은 데이터에서 정했다. 원본(merged_jeju_balanced_sorted.xlsx)의 감정번호 × gpt감정
+교차표는 대각선만 채워져 있다: 0 중립 18,000 · 1 행복 17,115 · 2 슬픔 17,195 · 3 분노 17,840 ·
+4 놀람 18,612 · 5 공포 20,430 · 6 혐오 18,132 (전처리 전 행 수). 문장 내용도 1은 긍정,
+2는 부정이다. 원 프로젝트 코드(jeju-emotion-analysis의 jeju_kr_bert.py·automation.py 등)는
+1=슬픔, 2=행복으로 1·2가 뒤바뀌어 있고, 이 저장소도 처음에 그것을 베꼈다. 원 README의 감정
+순서(중립·행복·슬픔…)는 데이터와 맞는다. tests/test_labels.py가 이 대응을 고정하고, 원본이
+있으면 교차표로 다시 확인한다.
 """
 
 from __future__ import annotations
@@ -10,8 +15,8 @@ import re
 
 EMOTION_LABELS: dict[int, str] = {
     0: "중립",
-    1: "슬픔",
-    2: "행복",
+    1: "행복",
+    2: "슬픔",
     3: "분노",
     4: "놀람",
     5: "공포",
@@ -23,17 +28,17 @@ NAME_TO_ID: dict[str, int] = {name: i for i, name in EMOTION_LABELS.items()}
 
 # 모델이 자주 내놓는 동의어. 값은 라벨 번호.
 SYNONYMS: dict[str, int] = {
-    "기쁨": 2,
-    "즐거움": 2,
+    "기쁨": 1,
+    "즐거움": 1,
     "화남": 3,
     "놀라움": 4,
     "두려움": 5,
     "무서움": 5,
     "역겨움": 6,
     "neutral": 0,
-    "sadness": 1,
-    "happiness": 2,
-    "joy": 2,
+    "happiness": 1,
+    "joy": 1,
+    "sadness": 2,
     "anger": 3,
     "surprise": 4,
     "fear": 5,
