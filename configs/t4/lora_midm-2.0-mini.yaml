@@ -5,8 +5,9 @@ model: midm-2.0-mini
 input_mode: jeju
 seed: 42
 output_dir: outputs/lora/midm-2.0-mini
-# 공식 템플릿의 기본 시스템 문구(약 460토큰) 때문에 예시가 559~592토큰이 되어 max_length 256에서
-# 정답이 모두 잘린다. 그 문구만 뺀 템플릿을 학습·병합본에 쓴다 (docs/colab_t4.md)
+# 공식 템플릿을 두 군데 고친 템플릿을 학습·병합본에 쓴다 (docs/colab_t4.md): 기본 시스템 문구(약 460토큰)
+# 때문에 max_length 256에서 정답이 모두 잘리고, 답 끝 토큰(<|eot_id|>)이 모델이 실제로 내는
+# <|end_of_text|>와 달라 손실이 그 토큰에 묶인다
 chat_template: configs/chat_templates/midm-2.0-mini.jinja
 lora:
   r: 16

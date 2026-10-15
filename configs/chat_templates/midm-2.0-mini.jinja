@@ -1,7 +1,10 @@
-{#- K-intelligence/Midm-2.0-Mini-Instruct (383eb221) 공식 chat_template에서 기본 시스템 문구
-    (Today Date, Mi:dm 소개·지침 약 460토큰)만 뺀 것. 나머지 구조는 같다.
-    이유: 기본 문구 때문에 학습 예시가 559~592토큰이 되어 max_length 256에서 정답이 잘린다
-    (docs/colab_t4.md). -#}
+{#- K-intelligence/Midm-2.0-Mini-Instruct (383eb221) 공식 chat_template에서 두 군데만 바꿨다.
+    1. 기본 시스템 문구(Today Date, Mi:dm 소개·지침 약 460토큰)를 뺐다. 학습 예시가 559~592토큰이 되어
+       max_length 256에서 정답이 잘린다.
+    2. assistant 차례 끝을 <|eot_id|> 대신 eos_token(<|end_of_text|>)으로 닫는다. 모델은 답 뒤에
+       <|end_of_text|>를 낸다(generation_config eos_token_id 2, 라벨 뒤 확률 1.000). <|eot_id|>의
+       확률은 1e-14 수준이라 그대로 두면 학습 손실이 그 토큰에 묶인다.
+    근거는 docs/colab_t4.md. -#}
 {{- bos_token }}
 
 {%- if messages[0].role == "system" %}
@@ -58,7 +61,11 @@
         {{- message.content }}
         {{- '\n</tool_response>' }}
     {%- endif %}
-    {{- '<|eot_id|>' }}
+    {%- if message.role == "assistant" %}
+        {{- eos_token }}
+    {%- else %}
+        {{- '<|eot_id|>' }}
+    {%- endif %}
 {%- endfor %}
 
 {%- if add_generation_prompt %}

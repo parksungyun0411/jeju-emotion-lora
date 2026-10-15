@@ -98,8 +98,8 @@ def test_t4_configs_exist_for_every_model():
     assert {p.stem.removeprefix("lora_") for p in T4_CONFIGS} == set(load_models())
 
 
-def test_midm_template_drops_only_default_system_text():
-    """Midm 템플릿은 공식 템플릿에서 기본 시스템 문구만 뺐다: 특수 토큰 구조는 그대로다."""
+def test_midm_template_without_default_text_and_eos_after_answer():
+    """Midm 템플릿: 기본 시스템 문구를 빼고 assistant 차례 끝만 eos로 바꿨다."""
     jinja2 = pytest.importorskip("jinja2")
     cfg = load_train_config(Path(__file__).parents[1] / "configs" / "lora_midm-2.0-mini.yaml")
     text = (Path(__file__).parents[1] / cfg.chat_template).read_text(encoding="utf-8")
@@ -111,10 +111,17 @@ def test_midm_template_drops_only_default_system_text():
     out = (
         jinja2.Environment()
         .from_string(text)
-        .render(messages=messages, bos_token="<B>", tools=None, add_generation_prompt=False)
+        .render(
+            messages=messages,
+            bos_token="<B>",
+            eos_token="<E>",
+            tools=None,
+            add_generation_prompt=False,
+        )
     )
+    # 모델은 답 뒤에 eos(<|end_of_text|>)를 낸다. assistant 차례만 그것으로 닫는다
     assert out == (
         "<B><|start_header_id|>system<|end_header_id|>\n\nS<|eot_id|>"
         "<|start_header_id|>user<|end_header_id|>\n\nU<|eot_id|>"
-        "<|start_header_id|>assistant<|end_header_id|>\n\nA<|eot_id|>"
+        "<|start_header_id|>assistant<|end_header_id|>\n\nA<E>"
     )
