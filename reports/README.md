@@ -1,12 +1,19 @@
 # reports
 
-**측정 전.** 이 폴더의 결과 파일은 모두 스크립트가 만든다. 아직 GPU 실행을 하지 않아 비어 있다.
+이 폴더의 결과 파일은 모두 스크립트가 만든다. LLM과 인코더 처리량은 2026-10-15 Colab T4 한 장에서 잰 값이다
+(절차·버전·문제는 [docs/colab_t4.md](../docs/colab_t4.md)). 평가는 문장 단위 분할 test 10,496건이다.
 
 | 경로 | 만드는 명령 | 내용 |
 |---|---|---|
-| `split_manifest.json` | `make split` | 분할 크기, 감정별 test 건수, row_id 해시 (텍스트 없음) |
-| `metrics/{tag}.json` | `make zeroshot·fewshot·eval-lora·encoder-eval` | macro-F1·정확도·파싱 실패율·혼동행렬 (기계 라벨 / 사람 검수 라벨) |
-| `throughput/{tag}.json` | `make eval-lora·bench-encoder` | 건/s, 지연 p50·p95·p99, 동시 요청 수, GPU |
+| `split_manifest*.json` | `make split`, `python -m jeju_lora.sentence_split` | 분할 크기, 감정별 test 건수, row_id 해시 (텍스트 없음) |
+| `leakage.{md,json}` | `python -m jeju_lora.leakage` | 원 행 단위 분할의 중복 문장 누수 |
+| `metrics/{tag}.json` | `scripts/colab_t4.sh baseline·eval`, `make encoder-eval` | macro-F1·정확도·파싱 실패율·혼동행렬 (기계 라벨 / 사람 검수 라벨), 분할·정밀도·백엔드 |
+| `throughput/{tag}.json` | `scripts/colab_t4.sh eval·bench-encoder` | 건/s, 지연 p50·p95·p99, 동시 요청 수, GPU, 정밀도 |
+| `train/{model}.json` | `scripts/colab_t4.sh train`이 쓴 `outputs/lora/{model}/train_summary.json`의 사본 | 학습 설정, 학습 표본 수, 학습 시간, 손실 곡선 |
+| `diagnostics/` | 각 문서 안의 스크립트 | 실행 중 막힌 곳을 잰 기록 |
 | `RESULTS.md` | `make report` | 위 파일을 모은 표와 $/100만 건 |
 
-`RESULTS.md`는 손으로 고치지 않는다. 파일이 없는 칸은 '측정 전'으로 나온다.
+`RESULTS.md`는 손으로 고치지 않는다. 파일이 없는 칸은 '측정 전', `configs/report.yaml`에 `not_run` 사유가 적힌 행은
+'측정 안 함'으로 나온다. 사람 검수 열은 검수 라벨(`reviews/gold.jsonl`)이 생긴 뒤 `make rescore`로 다시 계산한다.
+
+`metrics/`·`throughput/`·`train/` 아래 `_invalid_swapped_names/`는 감정 1·2의 이름이 뒤바뀐 코드(904cdb5에서 정정)로 만든 결과다. 프롬프트·학습 정답의 감정 이름이 틀렸으므로 결과로 쓰지 않는다(손실 곡선은 참고용).
