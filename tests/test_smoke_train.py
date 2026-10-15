@@ -94,3 +94,64 @@ def test_train_merge_generate(tmp_path, items):
     outs = backend.generate([build_messages(it) for it in items[:5]])
     assert len(outs) == 5
     assert all(INVALID <= parse_label(o) < NUM_LABELS for o in outs)
+
+
+def _tiny_setup(tmp_path, items):
+    from jeju_lora.data import write_jsonl
+
+    base = tmp_path / "tiny"
+    corpus = [SYSTEM_PROMPT, "제주어 : 감정 :", *("중립 슬픔 행복 분노 놀람 공포 혐오".split())]
+    corpus += [it["jeju"] for it in items]
+    _tiny_model(base, corpus)
+    write_jsonl(items, tmp_path / "train.jsonl")
+    write_jsonl(items[:14], tmp_path / "val.jsonl")
+    return base
+
+
+def _tiny_cfg(tmp_path, **train):
+    return TrainConfig(
+        model="midm-2.0-mini",
+        output_dir=str(tmp_path / "out"),
+        lora=LoraSection(r=4, alpha=8),
+        train=TrainSection(
+            per_device_batch_size=4,
+            max_eval_samples=8,
+            bf16=False,
+            gradient_checkpointing=False,
+            eval_steps=2,
+            save_steps=1000,
+            **train,
+        ),
+    )
+
+
+def test_truncated_answers_stop_training(tmp_path, items):
+    """정답까지 잘린 예시를 TRL이 버리면 표본 수가 바뀌므로 학습 전에 멈춘다."""
+    from jeju_lora.train_lora import build_datasets, make_trainer
+
+    base = _tiny_setup(tmp_path, items)
+    cfg = _tiny_cfg(tmp_path, max_length=8)
+    train_ds, eval_ds = build_datasets(cfg, tmp_path / "train.jsonl", tmp_path / "val.jsonl")
+    with pytest.raises(ValueError, match="max_length 8"):
+        make_trainer(cfg, str(base), None, train_ds, eval_ds, max_steps=1, use_cpu=True)
+
+
+def test_custom_chat_template_is_saved_with_adapter(tmp_path, items):
+    from jeju_lora.train_lora import build_datasets, make_trainer
+
+    base = _tiny_setup(tmp_path, items)
+    template = tmp_path / "t.jinja"
+    template.write_text(
+        "{% for m in messages %}[{{ m.role }}]{{ m.content }}<|end|>{% endfor %}"
+        "{% if add_generation_prompt %}[assistant]{% endif %}"
+    )
+    cfg = _tiny_cfg(tmp_path, max_length=128)
+    cfg.chat_template = str(template)  # 절대 경로는 REPO_ROOT와 합쳐도 그대로다
+    train_ds, eval_ds = build_datasets(cfg, tmp_path / "train.jsonl", tmp_path / "val.jsonl")
+    trainer = make_trainer(cfg, str(base), None, train_ds, eval_ds, max_steps=1, use_cpu=True)
+    trainer.train()
+    adapter = tmp_path / "out" / "adapter"
+    trainer.processing_class.save_pretrained(str(adapter))
+    from transformers import AutoTokenizer
+
+    assert AutoTokenizer.from_pretrained(str(adapter)).chat_template == template.read_text()

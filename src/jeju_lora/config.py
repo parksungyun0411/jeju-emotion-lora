@@ -9,7 +9,8 @@ import yaml
 
 from jeju_lora.prompts import INPUT_MODES
 
-MODELS_YAML = Path(__file__).resolve().parents[2] / "configs" / "models.yaml"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+MODELS_YAML = REPO_ROOT / "configs" / "models.yaml"
 
 
 class ConfigError(ValueError):
@@ -73,6 +74,8 @@ class TrainConfig:
     input_mode: str = "jeju"
     seed: int = 42
     output_dir: str = "outputs/lora"
+    # 모델 기본 대신 쓸 채팅 템플릿(저장소 기준 경로). 어댑터·병합본 토크나이저에 그대로 저장된다
+    chat_template: str | None = None
     lora: LoraSection = field(default_factory=LoraSection)
     train: TrainSection = field(default_factory=TrainSection)
 
@@ -108,6 +111,8 @@ def validate(cfg: TrainConfig, models: dict[str, ModelSpec]) -> None:
         raise ConfigError("train.max_train_samples는 양수 또는 null")
     if tr.bf16 and tr.fp16:
         raise ConfigError("train.bf16과 train.fp16은 함께 켤 수 없다")
+    if cfg.chat_template is not None and not (REPO_ROOT / cfg.chat_template).is_file():
+        raise ConfigError(f"chat_template 파일이 없다: {cfg.chat_template}")
 
 
 def load_train_config(path: str | Path, models_path: str | Path = MODELS_YAML) -> TrainConfig:

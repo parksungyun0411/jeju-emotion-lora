@@ -1,0 +1,66 @@
+{#- K-intelligence/Midm-2.0-Mini-Instruct (383eb221) 공식 chat_template에서 기본 시스템 문구
+    (Today Date, Mi:dm 소개·지침 약 460토큰)만 뺀 것. 나머지 구조는 같다.
+    이유: 기본 문구 때문에 학습 예시가 559~592토큰이 되어 max_length 256에서 정답이 잘린다
+    (docs/colab_t4.md). -#}
+{{- bos_token }}
+
+{%- if messages[0].role == "system" %}
+    {%- set system_message = messages[0].content | trim %}
+    {%- set messages = messages[1:] %}
+{%- endif %}
+
+{{- '<|start_header_id|>system<|end_header_id|>\n\n' }}
+{%- if tools is not none %}
+    {{- 'Environment: ipython\n' }}
+{%- endif %}
+
+{%- if tools %}
+    {{- 'Mi:dm은 도구 사용시 아래 규칙을 준수해야 한다.\n' }}
+    {{- '- 제공된 도구만 사용하고, 모든 필수 인자를 반드시 포함한다.\n' }}
+    {{- '- 주어진 tool_name을 임의로 변경하지 않아야 한다.\n' }}
+    {{- '- 도구를 호출하는 경우, 마지막은 도구 호출로 끝내며 그 뒤에 텍스트를 출력하지 않는다.\n' }}
+    {{- '- 도구 호출 결과를 활용하여 응답을 생성한다.\n' }}
+    {{- '- 도구가 필요하지 않은 경우에는 일반적인 방식으로 응답한다.\n' }}
+    {{- '- 도구 호출 정보는 다음과 같이 <tool_call></tool_call> XML 태그 사이에 작성한다.\n' }}
+    {{- '<tool_call>\n{"name": "tool_name", "arguments": {"param": "value"}}\n</tool_call>\n\n' }}
+    {{- 'tool_list:' }} {{ tools | tojson() }}
+{%- endif %}
+
+{{- system_message }} 
+{{- '<|eot_id|>' }}
+
+{%- for message in messages %}
+    {%- if (message.role == "user") or (message.role == "system") %}
+        {{- '<|start_header_id|>' + message.role + '<|end_header_id|>\n\n' + message.content | trim }}
+    {%- elif message.role == "assistant" %}
+        {{- '<|start_header_id|>' + message.role + '<|end_header_id|>\n\n' + message.content | trim }}
+        {%- if message.tool_calls %}
+            {%- for tool_call in message.tool_calls %}
+                {%- if tool_call.function %}
+                    {%- set tool_call = tool_call.function %}
+                {%- endif %}
+                {{- '<tool_call>\n{"name": "' }}
+                {{- tool_call.name }}
+                {{- '", "arguments": ' }}
+                {%- if tool_call.arguments is string %}
+                    {{- tool_call.arguments }}
+                {%- else %}
+                    {{- tool_call.arguments | tojson }}
+                {%- endif %}
+                {{- '}\n</tool_call>' }}
+            {%- endfor %}
+        {%- endif %}
+    {%- elif message.role == "tool" %}
+        {%- if loop.first or (messages[loop.index0 - 1].role != "tool") %}
+            {{- '<|start_header_id|>user<|end_header_id|>\n\n' }}
+        {%- endif %}
+        {{- '<tool_response>\n' }}
+        {{- message.content }}
+        {{- '\n</tool_response>' }}
+    {%- endif %}
+    {{- '<|eot_id|>' }}
+{%- endfor %}
+
+{%- if add_generation_prompt %}
+    {{- '<|start_header_id|>assistant<|end_header_id|>\n\n' }}
+{%- endif %}

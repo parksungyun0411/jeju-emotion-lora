@@ -15,7 +15,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from jeju_lora import compat
-from jeju_lora.config import load_models, load_train_config
+from jeju_lora.config import REPO_ROOT, load_models, load_train_config
 from jeju_lora.data import read_jsonl
 from jeju_lora.prompts import to_sft_record
 
@@ -71,6 +71,12 @@ def make_trainer(cfg, model_id: str, revision: str | None, train_ds, eval_ds, **
         model_init_kwargs={"revision": revision, "dtype": model_dtype(tr)},
         **overrides,
     )
+    processing_class = None
+    if cfg.chat_template:
+        from transformers import AutoTokenizer
+
+        processing_class = AutoTokenizer.from_pretrained(model_id, revision=revision)
+        processing_class.chat_template = (REPO_ROOT / cfg.chat_template).read_text(encoding="utf-8")
     peft_config = LoraConfig(
         r=lo.r,
         lora_alpha=lo.alpha,
@@ -78,13 +84,22 @@ def make_trainer(cfg, model_id: str, revision: str | None, train_ds, eval_ds, **
         target_modules=lo.target_modules,
         task_type="CAUSAL_LM",
     )
-    return SFTTrainer(
+    trainer = SFTTrainer(
         model=model_id,
         args=args,
         train_dataset=train_ds,
         eval_dataset=eval_ds,
+        processing_class=processing_class,
         peft_config=peft_config,
     )
+    # TRL은 max_length에서 정답까지 잘린 예시를 조용히 버린다. 학습 표본 수가 바뀌면 멈춘다
+    dropped = len(train_ds) - len(trainer.train_dataset)
+    if dropped:
+        raise ValueError(
+            f"train {len(train_ds)}개 중 {dropped}개의 정답이 max_length {tr.max_length}에서 잘렸다"
+            " — 채팅 템플릿 길이를 확인한다"
+        )
+    return trainer
 
 
 def main() -> None:
