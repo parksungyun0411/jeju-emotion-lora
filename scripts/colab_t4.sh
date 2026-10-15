@@ -2,7 +2,7 @@
 # Colab T4 VM(/content/repo)에서 단계별로 실행한다. 절차와 실측 기록은 docs/colab_t4.md.
 #
 #   bash scripts/colab_t4.sh setup
-#   bash scripts/colab_t4.sh baseline MODEL          # 제로샷 + 퓨샷 (vLLM 서버 1회 기동)
+#   bash scripts/colab_t4.sh baseline MODEL [TEMPLATE]  # 제로샷 + 퓨샷 (vLLM 서버 1회 기동)
 #   bash scripts/colab_t4.sh train MODEL
 #   bash scripts/colab_t4.sh merge MODEL
 #   bash scripts/colab_t4.sh quantize MODEL
@@ -39,17 +39,27 @@ case "$stage" in
     uv pip install --system --no-deps -e .
     uv venv --python 3.13 "$SERVE_VENV"
     uv pip install --python "$SERVE_VENV" "vllm==${VLLM_VERSION:-0.30.0}" -e .
+    uv venv --python 3.13 "$QUANT_VENV"
+    uv pip install --python "$QUANT_VENV" "llmcompressor==${LLMCOMPRESSOR_VERSION:-0.14.0}" -e .
     # kanana 설정 검증 우회 플러그인이 vLLM에 등록됐는지 확인 (src/jeju_lora/compat.py)
     $SERVE_PY -c "from importlib.metadata import entry_points; \
 print([e.name for e in entry_points(group='vllm.general_plugins')])"
     ;;
   baseline)
-    # T4는 bf16이 없어 fp16으로 띄운다. 서버 1회 기동에 제로샷·퓨샷을 이어서 잰다
+    # T4는 bf16이 없어 fp16으로 띄운다. 서버 1회 기동에 제로샷·퓨샷을 이어서 잰다.
+    # 세 번째 인자로 채팅 템플릿을 주면 그 템플릿으로 띄우고 태그 끝에 _tpl을 붙인다
+    tpl=${3:-}
+    extra=()
+    suffix=
+    if [[ -n "$tpl" ]]; then
+      extra=(--chat-template "$tpl")
+      suffix=_tpl
+    fi
     scripts/with_vllm.sh "$(model_info hf_id)" "$model" --revision "$(model_info revision)" \
-      --dtype float16 -- bash -c "
-      $SERVE_PY -m jeju_lora.predict --model $model --tag zeroshot_$model --shots 0 \
+      --dtype float16 "${extra[@]+"${extra[@]}"}" -- bash -c "
+      $SERVE_PY -m jeju_lora.predict --model $model --tag zeroshot_$model$suffix --shots 0 \
         --precision fp16 --concurrency $CONCURRENCY --data $SPLIT/test.jsonl --train $SPLIT/train.jsonl &&
-      $SERVE_PY -m jeju_lora.predict --model $model --tag fewshot_$model --shots 1 \
+      $SERVE_PY -m jeju_lora.predict --model $model --tag fewshot_$model$suffix --shots 1 \
         --precision fp16 --concurrency $CONCURRENCY --data $SPLIT/test.jsonl --train $SPLIT/train.jsonl"
     ;;
   train)

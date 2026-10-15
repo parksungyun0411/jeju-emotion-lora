@@ -1,7 +1,7 @@
 # GPU 임대 서버 실행 가이드
 
-이 저장소의 GPU 단계는 아직 한 번도 실행하지 않았다. 아래 순서는 코드 기준으로 정리한 계획이며,
-실행하면서 막히는 곳은 이 문서에 고쳐 적는다.
+24GB GPU·bf16 기준으로 세운 계획이다. 실제 GPU 실행은 2026-10-15 Colab T4(fp16)에서 했고,
+그 절차·버전·막힌 곳은 [colab_t4.md](colab_t4.md)에 있다. 아래에서 그 실행으로 사실이 확인된 곳은 고쳐 적었다.
 
 ## 서버 조건
 
@@ -34,9 +34,9 @@
 원천은 AI Hub 「한국어 방언 발화(제주도)」이고 라벨은 GPT-4o로 붙였다. AI Hub 약관상 재배포하지 않으므로 이 저장소에는 없다.
 
 - 원 저장소 스크립트가 가리키는 위치: `jeju-emotion-analysis/../2학기_감정분류/merged_jeju_balanced_sorted.xlsx`
-- 2026-10-03 기준 이 Mac에서는 찾지 못했다(`~/Desktop/Projects/Datasets/제주어`에는 AI Hub 원천 zip만 있다).
-- 파일을 찾으면 `data/raw/merged_jeju_balanced_sorted.xlsx`에 두고 GPU 서버로는 `scp`로 옮긴다.
-- 파일을 찾지 못하면 같은 분할을 재현할 수 없다. 이 경우 비교 전제가 깨지므로 진행 전에 계획을 다시 정한다.
+- 2026-10-03에는 이 Mac에서 찾지 못했고, 이후 찾아 `data/raw/merged_jeju_balanced_sorted.xlsx`에 두었다(전처리 후 127,307행).
+- 원 행 단위 분할은 test의 70.4%가 train과 같은 문장이라([reports/leakage.md](../reports/leakage.md)) 주 평가는
+  문장 단위 분할(`data/splits_sentence/`)로 한다. GPU 서버에는 분할 jsonl만 옮기면 된다.
 
 ## 실행 순서
 
@@ -82,5 +82,12 @@ make report GPU_USD_PER_HOUR=<실제 요금> GPU_NAME="RTX 4090"
 ## 먼저 확인할 것 (첫 모델에서)
 
 1. `make train MODEL=kanana-1.5-2.1b` 시작 직후 로그의 스텝당 시간으로 전체 학습 시간을 다시 계산한다. 예상의 1.5배를 넘으면 `max_train_samples`로 줄이고 그 사실을 README에 적는다.
-2. `make eval-lora VARIANT=awq`를 처음 돌릴 때 vLLM이 AWQ 체크포인트를 읽는지 본다. 학습 환경의 llm-compressor 0.14.0은 compressed-tensors 0.19.0으로 저장하고, vLLM 0.30.0은 0.17.0을 쓴다. 읽지 못하면 `.venv-train`에 `llmcompressor==0.12.0`(compressed-tensors 0.17.1, transformers ≤5.10.1)을 설치해 양자화만 다시 한다.
+2. AWQ 체크포인트 호환: llm-compressor 0.14.0(compressed-tensors 0.19.0)이 저장한 W4A16_ASYM 체크포인트를
+   vLLM 0.30.0(compressed-tensors 0.17.0)이 그대로 읽었다(2026-10-15 T4, `Using MarlinLinearKernel for CompressedTensorsWNA16`).
+   llmcompressor 0.12.0으로 내릴 필요는 없었다.
 3. 원 프로젝트 코드는 transformers 4.x 기준이라 `.venv-orig`(transformers<5)에서 돌린다.
+4. Midm-2.0-Mini는 공식 채팅 템플릿의 기본 시스템 문구 때문에 학습 예시가 559~592토큰이라 `max_length: 256`에서
+   정답이 모두 잘리고, 템플릿의 답 끝 토큰(`<|eot_id|>`)이 모델이 실제로 내는 `<|end_of_text|>`와 다르다.
+   `configs/chat_templates/midm-2.0-mini.jinja`를 쓴다(근거: [reports/diagnostics/midm_template.md](../reports/diagnostics/midm_template.md)).
+5. kanana-1.5-2.1b는 transformers 5.17·5.18에서 설정 검증(hidden 1792, head 24)에 걸린다. 학습·병합·양자화는
+   `jeju_lora.compat`, vLLM은 `vllm.general_plugins` 진입점으로 우회한다(T4에서 둘 다 확인).
