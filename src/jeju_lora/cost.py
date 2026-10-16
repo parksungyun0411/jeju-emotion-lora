@@ -4,6 +4,8 @@
 
 측정 파일이 없는 칸은 '측정 전'으로 둔다. 숫자를 지어내지 않는다.
 report.yaml의 행에 `not_run: 사유`가 있으면 그 행은 '측정 안 함'으로 두고 사유를 표 아래에 적는다.
+`no_human: true`인 행은 독립 재라벨 열을 '—'로 둔다
+(재라벨 문항을 뽑은 분할과 그 행의 분할이 다를 때).
 분할·정밀도·백엔드 열은 측정 파일에 기록된 값을 그대로 옮긴다.
 
   python -m jeju_lora.cost --gpu-usd-per-hour 0.69 --gpu-name "RTX 4090"
@@ -94,6 +96,7 @@ def build_rows(report_cfg: dict, reports_dir: Path, gpu_usd_per_hour: float | No
                     else None
                 ),
                 "has_throughput_row": bool(r.get("throughput")),
+                "no_human": bool(r.get("no_human")),
             }
         )
     return rows
@@ -127,7 +130,7 @@ def render_markdown(
                     r["precision"] or PENDING,
                     r["backend"] or PENDING,
                     _fmt(r["f1_machine"], ".4f"),
-                    _fmt(r["f1_human"], ".4f"),
+                    "—" if r["no_human"] else _fmt(r["f1_human"], ".4f"),
                     _fmt(r["invalid_rate"], ".4f"),
                     _fmt(r["items_per_s"], ".1f") if tp else "—",
                     _fmt(r["p95_ms"], ".0f")

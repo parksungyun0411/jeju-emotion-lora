@@ -111,3 +111,13 @@ def test_not_run_rows_show_reason(tmp_path):
     assert "| C LoRA |" + " 측정 안 함 |" * 9 in md
     assert "- C LoRA: T4 할당 한도" in md
     assert "요금 근거: 출처 X" in md
+
+
+def test_no_human_rows_show_dash(tmp_path):
+    (tmp_path / "metrics").mkdir()
+    (tmp_path / "metrics" / "r.json").write_text(
+        json.dumps({"split": "splits", "machine_label": {"f1_macro": 0.8, "invalid_rate": 0.0}})
+    )
+    cfg = {"rows": [{"name": "R", "metrics": "r", "no_human": True}]}
+    md = render_markdown(build_rows(cfg, tmp_path, None), None, "g")
+    assert "| R | 원 행 단위 | 측정 전 | 측정 전 | 0.8000 | — | 0.0000 | — | — | — |" in md

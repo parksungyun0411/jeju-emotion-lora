@@ -26,9 +26,9 @@ MODEL_DIR_bf16 = outputs/merged/$(MODEL)
 MODEL_DIR_awq  = outputs/awq/$(MODEL)
 TAG = lora_$(MODEL)_$(VARIANT)
 
-.PHONY: help setup-dev test lint smoke setup-gpu split verify-split leakage split-sentence original encoder-eval \
+.PHONY: help setup-dev test lint smoke setup-gpu split verify-split leakage unseen-eval split-sentence original encoder-eval \
         review-sample review-label review-report zeroshot fewshot train merge quantize \
-        eval-lora bench-encoder report rescore
+        eval-lora bench-encoder report rescore compare
 
 help:
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-15s %s\n", $$1, $$2}'
@@ -57,6 +57,9 @@ verify-split: ## 원 저장소의 분할 함수와 row_id 순서까지 대조
 
 leakage: ## 원 행 단위 분할의 중복 문장 누수 진단 → reports/leakage.{md,json}
 	$(PY) -m jeju_lora.leakage --data $(DATA)
+
+unseen-eval: ## 원 행 단위 분할 인코더 예측을 train에 있는/없는 문장으로 나눠 채점 → reports/diagnostics/row_split_seen_unseen.{md,json}
+	$(PY) -m jeju_lora.unseen_eval --run-dir runs/original_row
 
 split-sentence: ## 문장 단위 7:1:2 분할 → data/splits_sentence/*.jsonl, reports/split_manifest_sentence.json
 	$(PY) -m jeju_lora.sentence_split --data $(DATA)
@@ -124,3 +127,7 @@ report: ## reports/RESULTS.md 생성 (GPU_USD_PER_HOUR=값 GPU_NAME=이름 PRICE
 
 rescore: ## 재라벨이 끝난 뒤 저장된 예측으로 지표 재계산 (GOLD=gold 파일, GPU 불필요)
 	$(PY) -c "from jeju_lora.predict import rescore_main; rescore_main()" --gold $(GOLD)
+
+compare: ## 두 구성의 macro-F1 차이 부트스트랩 95% 구간 (A=태그 B=태그) → reports/diagnostics/compare_A__B.json
+	@test -n "$(A)" -a -n "$(B)" || { echo "A=태그 B=태그 필요 (outputs/predictions/{태그}.jsonl)"; exit 1; }
+	$(PY) -m jeju_lora.compare $(A) $(B)
