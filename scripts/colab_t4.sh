@@ -23,6 +23,9 @@ QUANT_PY=$QUANT_VENV/bin/python
 export VLLM=$SERVE_VENV/bin/vllm
 GPU_NAME=${GPU_NAME:-Tesla T4}
 CONCURRENCY=${CONCURRENCY:-64}
+# GPU 두 장에서 vLLM 서버를 동시에 띄울 때 포트를 나눈다 (with_vllm.sh도 PORT를 읽는다)
+export PORT=${PORT:-8000}
+API="--base-url http://localhost:$PORT/v1"
 SPLIT=data/splits_sentence
 
 stage=${1:?단계 필요}
@@ -57,13 +60,14 @@ print([e.name for e in entry_points(group='vllm.general_plugins')])"
     fi
     scripts/with_vllm.sh "$(model_info hf_id)" "$model" --revision "$(model_info revision)" \
       --dtype float16 "${extra[@]+"${extra[@]}"}" -- bash -c "
-      $SERVE_PY -m jeju_lora.predict --model $model --tag zeroshot_$model$suffix --shots 0 \
+      $SERVE_PY -m jeju_lora.predict $API --model $model --tag zeroshot_$model$suffix --shots 0 \
         --precision fp16 --concurrency $CONCURRENCY --data $SPLIT/test.jsonl --train $SPLIT/train.jsonl &&
-      $SERVE_PY -m jeju_lora.predict --model $model --tag fewshot_$model$suffix --shots 1 \
+      $SERVE_PY -m jeju_lora.predict $API --model $model --tag fewshot_$model$suffix --shots 1 \
         --precision fp16 --concurrency $CONCURRENCY --data $SPLIT/test.jsonl --train $SPLIT/train.jsonl"
     ;;
   train)
-    $PY -m jeju_lora.train_lora --config "configs/t4/lora_$model.yaml" \
+    # TRAIN_CONFIG로 다른 설정을 줄 수 있다 (예: 메모리가 모자랄 때 배치를 줄인 사본)
+    $PY -m jeju_lora.train_lora --config "${TRAIN_CONFIG:-configs/t4/lora_$model.yaml}" \
       --train $SPLIT/train.jsonl --val $SPLIT/val.jsonl
     ;;
   merge)
@@ -83,9 +87,9 @@ print([e.name for e in entry_points(group='vllm.general_plugins')])"
     esac
     tag="lora_${model}_${variant}"
     scripts/with_vllm.sh "$dir" "$tag" --dtype float16 -- bash -c "
-      $SERVE_PY -m jeju_lora.predict --model $tag --tag $tag --precision $precision \
+      $SERVE_PY -m jeju_lora.predict $API --model $tag --tag $tag --precision $precision \
         --concurrency $CONCURRENCY --data $SPLIT/test.jsonl &&
-      $SERVE_PY -m jeju_lora.loadtest --model $tag --tag $tag --concurrency $CONCURRENCY \
+      $SERVE_PY -m jeju_lora.loadtest $API --model $tag --tag $tag --concurrency $CONCURRENCY \
         --gpu '$GPU_NAME' --precision $precision --data $SPLIT/test.jsonl"
     ;;
   bench-encoder)
