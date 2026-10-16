@@ -18,10 +18,15 @@ from jeju_lora.labels import LABEL_NAMES
 
 
 def auto_dtype(torch, device: str):
-    """bf16을 지원하는 GPU는 bf16, T4 같은 GPU는 fp16, CPU는 fp32."""
+    """bf16 연산 장치가 있는 GPU(compute capability 8.0 이상)는 bf16, T4 같은 GPU는 fp16,
+    CPU는 fp32.
+
+    torch.cuda.is_bf16_supported()는 T4(7.5)에서도 에뮬레이션으로 True를 돌려주므로 쓰지 않는다.
+    """
     if device != "cuda":
         return torch.float32
-    return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    major, _ = torch.cuda.get_device_capability()
+    return torch.bfloat16 if major >= 8 else torch.float16
 
 
 def dtype_name(torch, dtype) -> str:

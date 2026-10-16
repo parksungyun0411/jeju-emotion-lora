@@ -62,6 +62,21 @@ def test_openai_payload_constrains_to_labels():
     json.dumps(body, ensure_ascii=False)
 
 
+@pytest.mark.parametrize(
+    ("device", "capability", "expected"),
+    [("cuda", (7, 5), "fp16"), ("cuda", (8, 0), "bf16"), ("cpu", (7, 5), "fp32")],
+)
+def test_auto_dtype_uses_compute_capability(device, capability, expected):
+    from types import SimpleNamespace
+
+    from jeju_lora.generation import auto_dtype, dtype_name
+
+    # T4(7.5)는 is_bf16_supported()가 에뮬레이션으로 True여도 fp16이어야 한다
+    cuda = SimpleNamespace(is_bf16_supported=lambda: True, get_device_capability=lambda: capability)
+    fake = SimpleNamespace(bfloat16="bf", float16="f16", float32="f32", cuda=cuda)
+    assert dtype_name(fake, auto_dtype(fake, device)) == expected
+
+
 def test_encoder_npz_alignment():
     test = [{"row_id": i, "label": lab} for i, lab in enumerate([0, 1, 2])]
     probs = np.eye(7)[[0, 2, 2]]
