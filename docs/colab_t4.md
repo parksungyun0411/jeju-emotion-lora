@@ -5,7 +5,8 @@
 모든 수치는 `reports/` 아래 파일에서 나온다. 결과 표는 [reports/RESULTS.md](../reports/RESULTS.md).
 
 첫 실행은 감정 1·2의 이름이 뒤바뀐 코드(1=슬픔, 2=행복)로 돌았다. 904cdb5에서 1=행복, 2=슬픔으로 고쳤고
-그 결과는 `reports/*/_invalid_swapped_names/`로 옮긴 뒤 같은 VM에서 다시 돌렸다. 아래 '문제와 대응'의 손실 수치는
+그 결과는 `reports/*/_invalid_swapped_names/`로 옮겼다. 같은 VM에서 kanana 제로샷·퓨샷을 다시 잰 뒤 VM이 끊겼고,
+나머지 단계는 다음 날 Kaggle T4에서 돌렸다([kaggle_t4.md](kaggle_t4.md)). 아래 '문제와 대응'의 손실 수치는
 첫 실행에서 잰 값이다(원인 진단은 감정 이름과 무관하다).
 
 ## 환경
@@ -47,7 +48,7 @@ bash scripts/colab_t4.sh train kanana-1.5-2.1b
 bash scripts/colab_t4.sh merge kanana-1.5-2.1b
 bash scripts/colab_t4.sh eval kanana-1.5-2.1b fp16
 bash scripts/colab_t4.sh train midm-2.0-mini
-# … (아래 '실행 순서와 소요 시간' 표 참고)
+# … (VM이 끊긴 뒤의 실행 순서와 소요 시간은 kaggle_t4.md)
 
 # ── 로컬 ──
 colab stop -s jeju-t4
@@ -66,7 +67,7 @@ colab stop -s jeju-t4
 | 원 행 단위 분할 | 문장 단위 분할(test 10,496건) | 원 분할은 test의 70.4%가 train과 같은 문장이다([reports/leakage.md](../reports/leakage.md)) |
 | Midm 공식 채팅 템플릿 | 기본 시스템 문구를 빼고 assistant 차례를 eos로 닫은 템플릿([configs/chat_templates/midm-2.0-mini.jinja](../configs/chat_templates/midm-2.0-mini.jinja)) | 아래 '문제와 대응' 3·4. LoRA 학습·병합본·AWQ 보정에만 쓴다. 제로샷·퓨샷은 공식 템플릿 그대로다 |
 | requirements/train.txt 고정 버전 | Colab 기본 torch 2.11.0+cu130·transformers 5.18.0·peft 0.21.1 + trl 1.14.1 | 설치 시간을 줄이려고. 양자화만 llmcompressor 0.14.0이 끌어온 torch 2.14.0·transformers 5.17.0 |
-| 인코더 처리량 bf16 | fp16 | `bench_encoder`가 GPU의 bf16 지원 여부로 고른다 |
+| 인코더 처리량 bf16 | fp16 | `bench_encoder`가 GPU의 compute capability로 고른다. 처음에는 `is_bf16_supported()`로 골라 T4에서 bf16 에뮬레이션이 됐다(52f7615에서 고침, [kaggle_t4.md](kaggle_t4.md) 문제 3) |
 
 ## 문제와 대응
 

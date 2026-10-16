@@ -1,6 +1,7 @@
 # 결과 표의 행. 각 행은 reports/metrics/{metrics}.json, reports/throughput/{throughput}.json을 읽는다.
 # 파일이 없으면 그 칸은 '측정 전'으로 남고, not_run: 사유가 있으면 '측정 안 함'과 사유가 나온다.
 # 분할·정밀도·백엔드 열은 각 파일에 기록된 값이다(2026-10-15 Colab T4 실행은 문장 단위 분할, fp16).
+# 2026-10-16부터는 Kaggle 무료 T4에서 잰다(docs/kaggle_t4.md).
 rows:
   # 원 프로젝트 인코더 코드를 문장 단위 분할로 다시 학습한 값 (python -m jeju_lora.encoder_eval)
   - name: Dual-Gated KR-BERT (원 코드)
@@ -45,3 +46,15 @@ rows:
   - name: Midm-2.0-Mini LoRA AWQ 4bit
     metrics: lora_midm-2.0-mini_awq
     throughput: lora_midm-2.0-mini_awq
+  # 원 행 단위 분할(test 70.4%가 train과 같은 문장)로 원 코드를 다시 돌린 값. 위 행들과 분할이 달라 비교하지 않는다.
+  # train에 있는 문장과 없는 문장을 나눈 값은 reports/diagnostics/row_split_seen_unseen.md
+  # 재라벨 277건은 문장 단위 분할 test에서 뽑아 이 분할과 맞지 않으므로 그 열은 비운다(no_human).
+  - name: Dual-Gated KR-BERT (원 코드, 원 행 단위 분할)
+    metrics: encoder_dual_row
+    no_human: true
+  - name: KoELECTRA (원 코드, 원 행 단위 분할)
+    metrics: encoder_koelectra_row
+    no_human: true
+  - name: KoELECTRA + Dual KR-BERT 앙상블 (원 코드, 원 행 단위 분할)
+    metrics: encoder_ensemble_row
+    no_human: true

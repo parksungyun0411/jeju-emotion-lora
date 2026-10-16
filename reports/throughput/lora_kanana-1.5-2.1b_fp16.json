@@ -1,0 +1,18 @@
+{
+  "completed": 5000,
+  "errors": 0,
+  "wall_s": 58.618437338999684,
+  "items_per_s": 85.29739493197695,
+  "latency_p50_s": 0.7183004689995869,
+  "latency_p95_s": 0.8639769809997233,
+  "latency_p99_s": 0.9027339689992004,
+  "tag": "lora_kanana-1.5-2.1b_fp16",
+  "system": "vllm",
+  "model": "lora_kanana-1.5-2.1b_fp16",
+  "concurrency": 64,
+  "gpu": "Tesla T4",
+  "precision": "fp16",
+  "split": "splits_sentence",
+  "n_requested": 5000,
+  "measured_at": "2026-10-16T04:49:41+0000"
+}

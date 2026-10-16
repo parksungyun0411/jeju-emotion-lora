@@ -1,0 +1,24 @@
+{
+  "tag": "encoder_ensemble",
+  "system": "encoder",
+  "items_per_s": 717.4230954675422,
+  "latency_p95_s": null,
+  "batch_size": 128,
+  "precision": "fp16",
+  "split": "splits_sentence",
+  "n": 5000,
+  "encoders": {
+    "koelectra": {
+      "hf_id": "monologg/koelectra-base-v3-discriminator",
+      "passes": 1,
+      "single_pass_items_per_s": 1929.01918208724
+    },
+    "kr-bert-dual": {
+      "hf_id": "snunlp/KR-BERT-char16424",
+      "passes": 2,
+      "single_pass_items_per_s": 2284.462500519263
+    }
+  },
+  "gpu": "Tesla T4",
+  "measured_at": "2026-10-16T07:52:07+0000"
+}
