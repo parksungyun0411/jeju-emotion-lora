@@ -2,7 +2,7 @@
 
 원 코드(jeju_kr_bert.py save_report)는 test 분할 순서대로 probs·labels를 npz에 저장한다.
 분할이 같으면 data/splits/test.jsonl과 순서가 같으므로 라벨 배열이 일치하는지로 확인한다.
-이렇게 하면 앙상블을 다시 돌리지 않고도 사람 검수 문항에서 F1을 잴 수 있다.
+이렇게 하면 앙상블을 다시 돌리지 않고도 재라벨 문항에서 F1을 잴 수 있다.
 
   python -m jeju_lora.encoder_eval \
       --dual-npz runs/original/step3_dual_probs.npz \

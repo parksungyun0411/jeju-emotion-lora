@@ -40,7 +40,7 @@
 
 ## 실행 순서
 
-로컬(Mac)에서 할 일과 GPU 서버에서 할 일을 나눴다. 사람 검수는 GPU를 켜지 않은 상태에서 한다.
+로컬(Mac)에서 할 일과 GPU 서버에서 할 일을 나눴다. 검수(재라벨)는 GPU를 켜지 않은 상태에서 한다.
 
 ```bash
 # ── 로컬 ──
@@ -59,7 +59,7 @@ make encoder-eval ALPHA=<step7_ensemble 보고서의 α>
 make bench-encoder GPU_NAME="RTX 4090"
 # runs/original, outputs/predictions/encoder_ensemble.jsonl, reports/ 를 로컬로 내려받고 서버를 끈다
 
-# ── 로컬: 사람 검수 (약 4h, GPU 꺼진 상태) ──
+# ── 로컬: 검수 (계획. 실제로는 Claude가 블라인드로 재라벨했다, reviews/README.md) ──
 make review-sample              # 감정별 40건 × 7 = 280건, 앙상블과 기계 라벨이 다른 문항을 절반까지
 make review-label REVIEWER=박성윤
 make review-report              # reviews/gold.jsonl, reviews/agreement.json
@@ -75,7 +75,7 @@ make report GPU_USD_PER_HOUR=<실제 요금> GPU_NAME="RTX 4090"
 # reports/, outputs/lora/*/train_summary.json 을 내려받고 서버를 끈다
 
 # ── 로컬 ──
-make rescore                    # 검수가 GPU 세션 뒤에 끝났다면 사람 라벨 지표를 다시 계산
+make rescore                    # 검수가 GPU 세션 뒤에 끝났다면 재라벨 지표를 다시 계산
 make report GPU_USD_PER_HOUR=<실제 요금> GPU_NAME="RTX 4090"
 ```
 

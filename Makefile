@@ -14,6 +14,7 @@ ORIG     ?= $(HOME)/Documents/GitHub/personal/jeju-emotion-analysis
 ORIG_OUT ?= runs/original
 ALPHA    ?=
 REVIEWER ?=
+GOLD     ?= reviews/gold.jsonl
 GPU_NAME ?=
 GPU_USD_PER_HOUR ?=
 PRICE_NOTE ?=
@@ -25,7 +26,7 @@ MODEL_DIR_bf16 = outputs/merged/$(MODEL)
 MODEL_DIR_awq  = outputs/awq/$(MODEL)
 TAG = lora_$(MODEL)_$(VARIANT)
 
-.PHONY: help setup-dev test lint smoke setup-gpu split verify-split original encoder-eval \
+.PHONY: help setup-dev test lint smoke setup-gpu split verify-split leakage split-sentence original encoder-eval \
         review-sample review-label review-report zeroshot fewshot train merge quantize \
         eval-lora bench-encoder report rescore
 
@@ -54,6 +55,12 @@ split: ## 원 프로젝트와 같은 7:1:2 분할 → data/splits/*.jsonl, repor
 verify-split: ## 원 저장소의 분할 함수와 row_id 순서까지 대조
 	$(PY) -m jeju_lora.verify_split --data $(DATA) --original-repo $(ORIG)
 
+leakage: ## 원 행 단위 분할의 중복 문장 누수 진단 → reports/leakage.{md,json}
+	$(PY) -m jeju_lora.leakage --data $(DATA)
+
+split-sentence: ## 문장 단위 7:1:2 분할 → data/splits_sentence/*.jsonl, reports/split_manifest_sentence.json
+	$(PY) -m jeju_lora.sentence_split --data $(DATA)
+
 original: ## 원 저장소 파이프라인으로 Dual KR-BERT·KoELECTRA·앙상블 재학습 (GPU, 원 저장소는 읽기만)
 	mkdir -p $(ORIG_OUT)
 	cd $(ORIG) && $(abspath $(ORIG_PY)) src/jeju_kr_bert.py --step dual --fp16 --epochs 6 --batch-size 64 \
@@ -69,7 +76,7 @@ encoder-eval: ## 앙상블 test 예측을 row_id에 붙여 재채점 (ALPHA=원 
 	$(PY) -m jeju_lora.encoder_eval --dual-npz $(ORIG_OUT)/step3_dual_probs.npz \
 	  --single-npz $(ORIG_OUT)/branch1_koelectra_probs.npz --alpha $(ALPHA)
 
-# ── ② 사람 검수 평가셋 ──────────────────────────────────
+# ── ② 검수 평가셋 (독립 재라벨) ──────────────────────────────────
 review-sample: ## 감정별 층화 + 모델 불일치 우선 280건 추출
 	$(PY) -m jeju_lora.review.sample --n 280 \
 	  $(if $(wildcard outputs/predictions/encoder_ensemble.jsonl),--predictions outputs/predictions/encoder_ensemble.jsonl,)
@@ -101,7 +108,7 @@ merge: ## 어댑터 병합 → outputs/merged/MODEL
 quantize: ## AWQ W4A16 → outputs/awq/MODEL
 	$(TRAIN_PY) -m jeju_lora.quantize --model-dir $(MODEL_DIR_bf16) --out $(MODEL_DIR_awq)
 
-eval-lora: ## vLLM으로 F1(기계·사람 라벨) + 부하 측정 (MODEL=키 VARIANT=bf16|awq)
+eval-lora: ## vLLM으로 F1(기계 라벨·재라벨) + 부하 측정 (MODEL=키 VARIANT=bf16|awq)
 	scripts/with_vllm.sh $(MODEL_DIR_$(VARIANT)) $(TAG) -- bash -c '\
 	  $(SERVE_PY) -m jeju_lora.predict --model $(TAG) --tag $(TAG) && \
 	  $(SERVE_PY) -m jeju_lora.loadtest --model $(TAG) --tag $(TAG) \
@@ -115,5 +122,5 @@ report: ## reports/RESULTS.md 생성 (GPU_USD_PER_HOUR=값 GPU_NAME=이름 PRICE
 	$(PY) -m jeju_lora.cost --gpu-name "$(GPU_NAME)" --price-note "$(PRICE_NOTE)" \
 	  $(if $(GPU_USD_PER_HOUR),--gpu-usd-per-hour $(GPU_USD_PER_HOUR),)
 
-rescore: ## 사람 검수가 끝난 뒤 저장된 예측으로 지표 재계산 (GPU 불필요)
-	$(PY) -c "from jeju_lora.predict import rescore_main; rescore_main()"
+rescore: ## 재라벨이 끝난 뒤 저장된 예측으로 지표 재계산 (GOLD=gold 파일, GPU 불필요)
+	$(PY) -c "from jeju_lora.predict import rescore_main; rescore_main()" --gold $(GOLD)

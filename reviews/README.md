@@ -1,26 +1,51 @@
-# 사람 검수 평가셋
-
-**상태: 검수 전.** 박성윤이 검수할 예정이며, 아직 라벨이 하나도 없다.
+# 검수 평가셋 (독립 재라벨)
 
 원 데이터의 감정 라벨은 GPT-4o가 붙였다. 그 라벨로만 평가하면 "GPT-4o를 얼마나 잘 흉내 내는가"를 재게 된다.
-그래서 test 분할에서 200~300건을 뽑아 사람이 다시 라벨을 붙이고, 모든 모델을 이 라벨로도 따로 잰다.
+그래서 test 분할에서 280건을 뽑아 GPT-4o 라벨을 보지 않고 다시 라벨을 붙이고, 모든 모델을 이 라벨로도 따로 잰다.
 
-## 절차
+## 이번 재라벨: Claude Opus 5.5 (사람 아님)
 
-1. `make review-sample` — test 분할에서 감정별로 같은 수(기본 280건 = 40 × 7)를 뽑는다.
-   원 앙상블 예측이 있으면 앙상블과 GPT-4o 라벨이 다른 문항을 감정별 절반까지 먼저 넣는다.
-2. `make review-label REVIEWER=박성윤` — 터미널에서 한 건씩 판정한다.
+`relabel_claude/`의 라벨은 **사람이 아니라 Claude Opus 5.5(LLM)가** 2026-10-15에 블라인드로 붙였다.
+도구는 사람 검수용으로 만들었지만, 지금 저장소에 사람 검수 라벨은 없다. 기록의 `reviewer`는 `claude-opus-5.5`다.
+필드 이름 `human_label`은 도구의 스키마 이름을 그대로 둔 것이고, 사람이 붙였다는 뜻이 아니다.
+
+| 항목 | 값 |
+|---|---:|
+| 표본 | 280건 (문장 단위 분할 test에서 GPT-4o 감정별 40건, seed 42) |
+| 판단 불가 | 3건 |
+| 라벨 | 277건 |
+| GPT-4o와 일치 | 40.1% (111/277) |
+| Cohen's κ | 0.300 |
+
+불일치는 대부분 중립 쪽에서 나왔다. GPT-4o가 감정을 붙인 237건 가운데 140건을 Claude는 중립으로 봤다.
+둘 다 감정을 붙인 97건에서는 74건이 같았다. 그래서 이 표본은 "GPT-4o 라벨의 감정 경계가 얼마나 흔들리는가"를
+보는 참고값으로 쓰고, 정답 대용으로 쓰지 않는다. 사람 기준 정확도는 아직 없다.
+
+라벨은 감정 번호 정정(904cdb5, 1=행복·2=슬픔) 전에 붙였다. GPT-4o 라벨과 번호별 교차표를 내 보면
+행복·슬픔이 서로 뒤바뀐 흔적이 없다(행복→행복 7건·행복→슬픔 1건, 슬픔→슬픔 8건·슬픔→행복 0건).
+
+모델 지표에 반영하는 명령:
+
+```bash
+make rescore GOLD=reviews/relabel_claude/gold.jsonl
+```
+
+## 절차 (도구)
+
+1. `make review-sample`: test 분할에서 감정별로 같은 수(기본 280건 = 40 × 7)를 뽑는다.
+   원 앙상블 예측이 있으면 앙상블과 GPT-4o 라벨이 다른 문항을 감정별 절반까지 먼저 넣는다(이번 표본은 예측 없이 뽑았다).
+2. `make review-label REVIEWER=이름`: 터미널에서 한 건씩 판정한다.
    기본은 블라인드(GPT-4o 라벨을 보여 주지 않음)이고, 판정마다 검수자·시각(타임존 포함)·결정·메모가 한 줄씩 기록된다.
-3. `make review-report` — 사람 대 GPT-4o 일치율·Cohen's κ, 감정별 일치율, 검수자가 둘 이상이면 검수자 간 κ.
+3. `make review-report`: 재라벨 대 GPT-4o 일치율·Cohen's κ, 감정별 일치율, 검수자가 둘 이상이면 검수자 간 κ.
 
 ## 파일
 
 | 파일 | 내용 | 저장소 포함 |
 |---|---|---|
 | `sample_ids.json` | 뽑힌 row_id와 추출 설정 | 포함 (텍스트 없음) |
-| `decisions.jsonl` | 판정 기록 (row_id, reviewer, decided_at, decision, human_label, note) | 포함 (텍스트 없음) |
-| `gold.jsonl` | 최종 사람 라벨. 판단 불가·동률 제외 | 포함 (텍스트 없음) |
-| `agreement.json` | 일치도 보고 | 포함 |
+| `relabel_claude/decisions.jsonl` | 판정 기록 (row_id, reviewer, decided_at, decision, human_label, confidence, note) | 포함 (텍스트 없음) |
+| `relabel_claude/gold.jsonl` | 최종 재라벨. 판단 불가 제외 | 포함 (텍스트 없음) |
+| `relabel_claude/agreement.json` | 일치도 보고 | 포함 |
 | `data/review/sample.jsonl` | 검수 화면용 문장 원문 | 제외 (AI Hub 원천 파생) |
 
 ## 판정 기준

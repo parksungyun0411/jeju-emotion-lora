@@ -1,4 +1,6 @@
-"""평가셋에 대해 생성 → 파싱 → 지표. 기계 라벨(GPT-4o)과 사람 검수 라벨 양쪽으로 잰다.
+"""평가셋에 대해 생성 → 파싱 → 지표. 기계 라벨(GPT-4o)과 독립 재라벨 양쪽으로 잰다.
+
+독립 재라벨은 GPT-4o 라벨을 보지 않고 다시 붙인 라벨이다(reviews/README.md).
 
 예:
   python -m jeju_lora.predict --backend openai --model qwen3-4b-lora-merged \
@@ -38,7 +40,7 @@ def run_predictions(backend, items: list[dict], input_mode: str, shots: list[dic
 
 
 def load_gold(path: str | Path) -> dict[int, int]:
-    """사람 검수 라벨 {row_id: label}. 파일이 없거나 비어 있으면 빈 dict."""
+    """독립 재라벨 {row_id: label}. 파일이 없거나 비어 있으면 빈 dict."""
     path = Path(path)
     if not path.exists():
         return {}
@@ -59,7 +61,7 @@ def score(preds: list[dict], gold: dict[int, int]) -> dict:
 
 
 def rescore_all(pred_dir: str | Path, metrics_dir: str | Path, gold: dict[int, int]) -> list[str]:
-    """저장된 예측으로 지표를 다시 계산한다. 사람 검수가 GPU 실행보다 늦게 끝나도 된다."""
+    """저장된 예측으로 지표를 다시 계산한다. 재라벨이 GPU 실행보다 늦게 끝나도 된다."""
     updated = []
     for mpath in sorted(Path(metrics_dir).glob("*.json")):
         ppath = Path(pred_dir) / f"{mpath.stem}.jsonl"
@@ -97,7 +99,7 @@ def main() -> None:
     p.add_argument("--data", default=DEFAULT_TEST)
     p.add_argument("--train", default=DEFAULT_TRAIN)
     p.add_argument("--gold", default=DEFAULT_GOLD)
-    p.add_argument("--only-gold", action="store_true", help="사람 검수 문항만 평가")
+    p.add_argument("--only-gold", action="store_true", help="재라벨 문항만 평가")
     p.add_argument("--shots", type=int, default=0, help="클래스당 퓨샷 예시 수")
     p.add_argument("--input-mode", default="jeju")
     p.add_argument("--limit", type=int, default=None)
@@ -111,7 +113,7 @@ def main() -> None:
     gold = load_gold(args.gold)
     if args.only_gold:
         if not gold:
-            raise SystemExit(f"{args.gold}가 없거나 비어 있다 — 사람 검수가 먼저다")
+            raise SystemExit(f"{args.gold}가 없거나 비어 있다 — 재라벨이 먼저다")
         items = [it for it in items if it["row_id"] in gold]
     if args.limit:
         items = items[: args.limit]
