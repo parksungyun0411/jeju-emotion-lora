@@ -1,13 +1,14 @@
 # reports
 
-이 폴더의 결과 파일은 모두 스크립트가 만든다. LLM과 인코더 처리량은 Colab T4 한 장에서 잰 값이다
+이 폴더의 결과 파일은 모두 스크립트가 만든다. LLM 지표와 처리량은 Colab T4 한 장에서 잰다
 (절차·버전·문제는 [docs/colab_t4.md](../docs/colab_t4.md)). 평가는 문장 단위 분할 test 10,496건이다.
+감정 이름 정정(904cdb5) 뒤의 처리량·학습 기록은 아직 다시 재는 중이라, 지금 `throughput/`·`train/`에는 격리한 옛 결과만 있다.
 
 | 경로 | 만드는 명령 | 내용 |
 |---|---|---|
 | `split_manifest*.json` | `make split`, `make split-sentence` | 분할 크기, 감정별 test 건수, row_id 해시 (텍스트 없음) |
 | `leakage.{md,json}` | `make leakage` | 원 행 단위 분할의 중복 문장 누수 |
-| `metrics/{tag}.json` | `scripts/colab_t4.sh baseline·eval`, `make encoder-eval` | macro-F1·정확도·파싱 실패율·혼동행렬 (GPT-4o 라벨 / 독립 재라벨), 분할·정밀도·백엔드 |
+| `metrics/{tag}.json` | `scripts/colab_t4.sh baseline·eval`, `python -m jeju_lora.encoder_eval`(`encoder_*`) | macro-F1·정확도·파싱 실패율·혼동행렬 (GPT-4o 라벨 / 독립 재라벨), 분할·정밀도·백엔드 |
 | `throughput/{tag}.json` | `scripts/colab_t4.sh eval·bench-encoder` | 건/s, 지연 p50·p95·p99, 동시 요청 수, GPU, 정밀도 |
 | `train/{model}.json` | `scripts/colab_t4.sh train`이 쓴 `outputs/lora/{model}/train_summary.json`의 사본 | 학습 설정, 학습 표본 수, 학습 시간, 손실 곡선 |
 | `diagnostics/` | 각 문서 안의 스크립트 | 실행 중 막힌 곳을 잰 기록 |

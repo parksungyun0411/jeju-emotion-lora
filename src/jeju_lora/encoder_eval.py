@@ -7,6 +7,8 @@
   python -m jeju_lora.encoder_eval \
       --dual-npz runs/original/step3_dual_probs.npz \
       --single-npz runs/original/branch1_koelectra_probs.npz --alpha 0.5
+
+모델 하나만 채점하려면 --single-npz를 빼고, 기록용 --tag·--device·--precision을 준다.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from jeju_lora.data import read_jsonl, write_jsonl
-from jeju_lora.predict import load_gold, score
+from jeju_lora.predict import load_gold, score, split_name
 
 
 def align(test: list[dict], probs: np.ndarray, labels: np.ndarray) -> list[int]:
@@ -34,8 +36,10 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--test", default="data/splits/test.jsonl")
     p.add_argument("--dual-npz", required=True)
-    p.add_argument("--single-npz", required=True)
-    p.add_argument("--alpha", type=float, required=True, help="원 프로젝트에서 고른 α")
+    p.add_argument("--single-npz", default=None, help="비우면 --dual-npz 하나만 채점한다")
+    p.add_argument("--alpha", type=float, default=None, help="원 실행에서 고른 α (앙상블일 때)")
+    p.add_argument("--device", default=None, help="기록용 학습 장치 (예: mps, Tesla T4)")
+    p.add_argument("--precision", default=None, help="기록용 학습 정밀도 (예: bf16-autocast, fp32)")
     p.add_argument("--gold", default="reviews/gold.jsonl")
     p.add_argument("--tag", default="encoder_ensemble")
     p.add_argument("--pred-dir", default="outputs/predictions")
@@ -43,24 +47,41 @@ def main() -> None:
     args = p.parse_args()
 
     test = read_jsonl(args.test)
-    d, s = np.load(args.dual_npz), np.load(args.single_npz)
-    probs = args.alpha * d["probs"] + (1 - args.alpha) * s["probs"]
-    preds_ens = align(test, probs, d["labels"])
-    preds_dual = align(test, d["probs"], d["labels"])
-    preds_single = align(test, s["probs"], s["labels"])
-
-    rows = [
-        {
-            "row_id": t["row_id"],
-            "gold": int(t["label"]),
-            "pred": pe,
-            "pred_dual": pd_,
-            "pred_koelectra": ps,
-        }
-        for t, pe, pd_, ps in zip(test, preds_ens, preds_dual, preds_single, strict=True)
-    ]
+    d = np.load(args.dual_npz)
+    if args.single_npz is None:
+        preds = align(test, d["probs"], d["labels"])
+        rows = [
+            {"row_id": t["row_id"], "gold": int(t["label"]), "pred": pr}
+            for t, pr in zip(test, preds, strict=True)
+        ]
+    else:
+        if args.alpha is None:
+            raise SystemExit("앙상블에는 --alpha가 필요하다")
+        s = np.load(args.single_npz)
+        probs = args.alpha * d["probs"] + (1 - args.alpha) * s["probs"]
+        preds_ens = align(test, probs, d["labels"])
+        preds_dual = align(test, d["probs"], d["labels"])
+        preds_single = align(test, s["probs"], s["labels"])
+        rows = [
+            {
+                "row_id": t["row_id"],
+                "gold": int(t["label"]),
+                "pred": pe,
+                "pred_dual": pd_,
+                "pred_koelectra": ps,
+            }
+            for t, pe, pd_, ps in zip(test, preds_ens, preds_dual, preds_single, strict=True)
+        ]
     write_jsonl(rows, Path(args.pred_dir) / f"{args.tag}.jsonl")
-    out = {"tag": args.tag, "alpha": args.alpha, **score(rows, load_gold(args.gold))}
+    out = {
+        "tag": args.tag,
+        "backend": "encoder",
+        "alpha": args.alpha,
+        "split": split_name(args.test),
+        "device": args.device,
+        "precision": args.precision,
+        **score(rows, load_gold(args.gold)),
+    }
     Path(args.metrics_dir).mkdir(parents=True, exist_ok=True)
     (Path(args.metrics_dir) / f"{args.tag}.json").write_text(
         json.dumps(out, ensure_ascii=False, indent=2) + "\n"

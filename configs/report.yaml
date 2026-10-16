@@ -2,7 +2,12 @@
 # 파일이 없으면 그 칸은 '측정 전'으로 남고, not_run: 사유가 있으면 '측정 안 함'과 사유가 나온다.
 # 분할·정밀도·백엔드 열은 각 파일에 기록된 값이다(2026-10-15 Colab T4 실행은 문장 단위 분할, fp16).
 rows:
-  - name: KoELECTRA + Dual KR-BERT 앙상블 (원 프로젝트)
+  # 원 프로젝트 인코더 코드를 문장 단위 분할로 다시 학습한 값 (python -m jeju_lora.encoder_eval)
+  - name: Dual-Gated KR-BERT (원 코드)
+    metrics: encoder_dual_sentence
+  - name: KoELECTRA (원 코드)
+    metrics: encoder_koelectra_sentence
+  - name: KoELECTRA + Dual KR-BERT 앙상블 (원 코드)
     metrics: encoder_ensemble
     throughput: encoder_ensemble
   - name: kanana-1.5-2.1b 제로샷
