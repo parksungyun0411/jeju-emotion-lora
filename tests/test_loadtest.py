@@ -7,7 +7,7 @@ import pytest
 from jeju_lora import loadtest
 from jeju_lora.bench_encoder import ensemble_items_per_s
 from jeju_lora.generation import OpenAIChatBackend
-from jeju_lora.quantize import calibration_texts
+from jeju_lora.quantize import calibration_texts, resolve_dtype
 
 
 def test_percentile_nearest_rank():
@@ -69,3 +69,13 @@ def test_calibration_texts_use_train_with_answer(items):
         for t in texts
     )
     assert texts == calibration_texts(StubTokenizer(), items, 10, "jeju", seed=0)
+
+
+def test_quantize_dtype_names():
+    from types import SimpleNamespace
+
+    fake = SimpleNamespace(float32="f32", float16="f16", bfloat16="bf")
+    assert resolve_dtype(fake, "auto") == "auto"
+    assert resolve_dtype(fake, "float32") == "f32"
+    with pytest.raises(ValueError):
+        resolve_dtype(fake, "fp32")

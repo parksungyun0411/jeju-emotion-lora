@@ -75,8 +75,9 @@ print([e.name for e in entry_points(group='vllm.general_plugins')])"
       --out "outputs/merged/$model" --dtype float16
     ;;
   quantize)
+    # QUANT_DTYPE=float32: 보정 중 fp16 범위를 넘는 모델용 (Qwen3-4B, docs/kaggle_t4.md)
     $QUANT_PY -m jeju_lora.quantize --model-dir "outputs/merged/$model" --out "outputs/awq/$model" \
-      --train $SPLIT/train.jsonl
+      --train $SPLIT/train.jsonl --dtype "${QUANT_DTYPE:-auto}"
     ;;
   eval)
     variant=${3:?fp16|awq}
