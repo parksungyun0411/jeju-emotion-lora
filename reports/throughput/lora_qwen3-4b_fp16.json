@@ -1,0 +1,18 @@
+{
+  "completed": 5000,
+  "errors": 0,
+  "wall_s": 98.88282341400009,
+  "items_per_s": 50.56489921476177,
+  "latency_p50_s": 1.2615763539997715,
+  "latency_p95_s": 1.3451261070003966,
+  "latency_p99_s": 1.3745905739997397,
+  "tag": "lora_qwen3-4b_fp16",
+  "system": "vllm",
+  "model": "lora_qwen3-4b_fp16",
+  "concurrency": 64,
+  "gpu": "Tesla T4",
+  "precision": "fp16",
+  "split": "splits_sentence",
+  "n_requested": 5000,
+  "measured_at": "2026-10-16T11:43:52+0000"
+}

@@ -100,6 +100,35 @@ def test_rescore_adds_human_scores_later(items, tmp_path):
     assert out["tag"] == "x" and out["human_label"]["n"] == 2
 
 
+def test_rescore_skips_other_split(items, tmp_path):
+    from jeju_lora.predict import rescore_all
+
+    preds = run_predictions(StubBackend(items), items[:14], "jeju", [])
+    (tmp_path / "p").mkdir()
+    (tmp_path / "m").mkdir()
+    for tag, split in [("s", "splits_sentence"), ("r", "splits")]:
+        write_jsonl(preds, tmp_path / "p" / f"{tag}.jsonl")
+        body = {"tag": tag, "split": split, **score(preds, {})}
+        (tmp_path / "m" / f"{tag}.json").write_text(json.dumps(body))
+    assert rescore_all(tmp_path / "p", tmp_path / "m", {1: 1}, "splits_sentence") == ["s"]
+    assert json.loads((tmp_path / "m" / "r.json").read_text())["human_label"] is None
+
+
+def test_rescore_refuses_missing_gold(tmp_path, monkeypatch):
+    import sys
+
+    from jeju_lora.predict import rescore_main
+
+    (tmp_path / "m").mkdir()
+    body = json.dumps({"tag": "x", "human_label": {"n": 2}})
+    (tmp_path / "m" / "x.json").write_text(body)
+    argv = ["rescore", "--gold", str(tmp_path / "none.jsonl"), "--metrics-dir", str(tmp_path / "m")]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit):
+        rescore_main()
+    assert (tmp_path / "m" / "x.json").read_text() == body
+
+
 def test_default_eval_is_sentence_split():
     from jeju_lora.predict import DEFAULT_TEST, DEFAULT_TRAIN, split_name
 

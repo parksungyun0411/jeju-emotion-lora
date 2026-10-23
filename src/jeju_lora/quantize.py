@@ -4,8 +4,9 @@
 보정(calibration) 데이터는 학습 분할의 프롬프트+정답을 채팅 템플릿으로 만든 것이다.
 평가 분할은 쓰지 않는다. 결과는 compressed-tensors 형식이라 vLLM이 그대로 읽는다.
 
---dtype float32는 보정 중 활성값이 fp16 범위를 넘는 모델에 쓴다. Qwen3-4B 병합본을
-fp16으로 보정하자 마지막 층 MLP 격자 탐색의 오차가 모두 inf가 되어 멈췄다(docs/kaggle_t4.md).
+--dtype float32는 fp16 보정이 실패하는 모델에 쓴다. Qwen3-4B 병합본을 fp16으로 보정하자
+마지막 층 MLP 격자 탐색의 오차가 모두 inf가 되어 멈췄다. 활성값은 fp16 범위 안이었고,
+제곱 오차 합이 fp16으로 계산되며 넘친 것으로 보인다(reports/diagnostics/qwen3_fp16.md).
 bf16이 없는 T4에서는 fp32로 CPU에 올리고 llm-compressor가 층 단위로 GPU에 올려 보정한다.
 
   python -m jeju_lora.quantize --model-dir outputs/merged/qwen3-4b --out outputs/awq/qwen3-4b

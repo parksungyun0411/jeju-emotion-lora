@@ -28,7 +28,8 @@ rows:
   - name: Qwen3-4B LoRA 병합
     metrics: lora_qwen3-4b_fp16
     throughput: lora_qwen3-4b_fp16
-  - name: Qwen3-4B LoRA AWQ 4bit
+  # fp16 보정이 마지막 층 오차 계산에서 넘쳐 fp32로 보정했다 (reports/diagnostics/qwen3_fp16.md)
+  - name: Qwen3-4B LoRA AWQ 4bit (fp32 보정)
     metrics: lora_qwen3-4b_awq
     throughput: lora_qwen3-4b_awq
   - name: Midm-2.0-Mini 제로샷

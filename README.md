@@ -1,6 +1,6 @@
 # 제주어 감정 분류: LoRA 소형 LLM 대 인코더 앙상블
 
-[![CI](https://github.com/parksungyun0411/jeju-emotion-lora/actions/workflows/ci.yml/badge.svg)](https://github.com/parksungyun0411/jeju-emotion-lora/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white) ![상태](https://img.shields.io/badge/상태-진행_중-lightgrey) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/parksungyun0411/jeju-emotion-lora/actions/workflows/ci.yml/badge.svg)](https://github.com/parksungyun0411/jeju-emotion-lora/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white) ![상태](https://img.shields.io/badge/상태-완료-brightgreen) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 졸업 프로젝트 [jeju-emotion-analysis](https://github.com/parksungyun0411/jeju-emotion-analysis)(제주어 7감정 분류)의 결과를 다시 검증하고, 같은 데이터에서 소형 LLM을 LoRA로 학습해 원 프로젝트의 KoELECTRA + Dual KR-BERT 앙상블과 비교하는 프로젝트입니다. 학습한 모델은 병합 → AWQ 4bit 양자화 → vLLM 서빙까지 이어서, 정확도와 함께 처리량과 100만 건당 비용을 한 표에 놓습니다.
 
@@ -8,8 +8,6 @@
 
 - **test 문장의 70.4%가 train에도 있었습니다.** 원 라벨링 파일은 감정별 행 수를 맞추려고 같은 문장을 최대 56번 복제했고, 원 코드는 행 단위로 나눴습니다. 그래서 원 분할 test 25,462행 가운데 17,914행은 같은 제주어 문장이 train에 있습니다([reports/leakage.md](reports/leakage.md)). 원 코드를 원 분할로 다시 돌리면 앙상블 macro-F1이 0.8393으로 원 README의 0.84가 재현됩니다. 하지만 train에 같은 문장이 있는 test 행의 정확도는 0.970, 없는 행은 0.561입니다([reports/diagnostics/row_split_seen_unseen.md](reports/diagnostics/row_split_seen_unseen.md)). 이 저장소는 고유 문장 기준으로 다시 나눈 **문장 단위 분할**(test 10,496문장, train과 겹침 0)로 평가합니다.
 - **감정 번호 1·2의 이름이 뒤바뀌어 있었습니다.** 원 코드의 보고서와 이 저장소의 첫 구현은 1=슬픔, 2=행복으로 적었습니다. 원 파일의 감정 번호와 GPT-4o 감정 이름 열을 교차표로 대조하면 1=행복, 2=슬픔입니다(`tests/test_labels.py`). 인코더 지표는 번호로 계산해 영향이 없지만, 감정 이름을 프롬프트에 넣는 LLM은 영향을 받습니다. 그래서 정정 전 LLM 실행 결과는 [reports/metrics/_invalid_swapped_names/](reports/metrics/_invalid_swapped_names/)로 옮기고 쓰지 않습니다.
-
-> **진행 중입니다.** 원 인코더 재학습(문장 단위·원 행 단위), kanana LoRA 학습·병합·AWQ, 세 모델의 제로샷·퓨샷, 처리량과 비용까지 측정했습니다. Midm-2.0-Mini와 Qwen3-4B의 LoRA는 Kaggle T4에서 돌리는 중이고, 아래 표의 '측정 중'은 아직 값이 없다는 뜻입니다.
 
 ## 결과 (문장 단위 분할 test 10,496건)
 
@@ -24,9 +22,14 @@
 | kanana-1.5-2.1b LoRA AWQ 4bit | Kaggle T4, vLLM | 0.5247 | 0.5653 | 0.4519 |
 | Midm-2.0-Mini 제로샷 | Kaggle T4, vLLM fp16 | 0.3151 | 0.4703 | 0.2882 |
 | Midm-2.0-Mini 퓨샷 (클래스당 1) | Kaggle T4, vLLM fp16 | 0.3036 | 0.3673 | 0.3689 |
+| Midm-2.0-Mini 제로샷 (LoRA용 템플릿) | Kaggle T4, vLLM fp16 | 0.2735 | 0.4417 | 0.3263 |
+| Midm-2.0-Mini 퓨샷 (LoRA용 템플릿) | Kaggle T4, vLLM fp16 | 0.3395 | 0.4365 | 0.3601 |
+| Midm-2.0-Mini LoRA 병합 | Kaggle T4, vLLM fp16 | 0.5163 | 0.5486 | 0.4252 |
+| Midm-2.0-Mini LoRA AWQ 4bit | Kaggle T4, vLLM | 0.5076 | 0.5412 | 0.4075 |
 | Qwen3-4B 제로샷 | Kaggle T4, vLLM fp16 | 0.3117 | 0.3941 | 0.2305 |
 | Qwen3-4B 퓨샷 (클래스당 1) | Kaggle T4, vLLM fp16 | 0.3583 | 0.3861 | 0.3070 |
-| Midm-2.0-Mini·Qwen3-4B LoRA (fp16·AWQ) | Kaggle T4 | 측정 중 | 측정 중 | 측정 중 |
+| Qwen3-4B LoRA 병합 | Kaggle T4, vLLM fp16 | 0.4738 | 0.5113 | 0.4002 |
+| Qwen3-4B LoRA AWQ 4bit (fp32 보정) | Kaggle T4, vLLM | 0.4618 | 0.4967 | 0.3729 |
 
 처리량과 비용 (Tesla T4 한 장, test 앞 5,000건)
 
@@ -35,9 +38,16 @@
 | KoELECTRA + Dual KR-BERT 앙상블 | PyTorch 배치 128, fp16 | 717.4 | — | 0.04 |
 | kanana-1.5-2.1b LoRA 병합 | vLLM fp16, 동시 요청 64 | 85.3 | 864 ms | 0.35 |
 | kanana-1.5-2.1b LoRA AWQ 4bit | vLLM, 동시 요청 64 | 86.4 | 854 ms | 0.34 |
+| Midm-2.0-Mini LoRA 병합 | vLLM fp16, 동시 요청 64 | 86.8 | 878 ms | 0.34 |
+| Midm-2.0-Mini LoRA AWQ 4bit | vLLM, 동시 요청 64 | 86.4 | 913 ms | 0.34 |
+| Qwen3-4B LoRA 병합 | vLLM fp16, 동시 요청 64 | 50.6 | 1,345 ms | 0.59 |
+| Qwen3-4B LoRA AWQ 4bit | vLLM, 동시 요청 64 | 52.1 | 1,293 ms | 0.57 |
 
-- **이 데이터와 T4 조건에서 LoRA 소형 LLM이 인코더 앙상블보다 낫다는 근거는 없었습니다.** GPT-4o 라벨 기준 macro-F1은 kanana LoRA가 0.0105 높지만, test 문항을 다시 뽑는 부트스트랩(1,000회)의 95% 구간이 −0.0017 ~ +0.0226으로 0을 포함합니다([reports/diagnostics/](reports/diagnostics/), `make compare`). 독립 재라벨 기준으로는 앙상블이 높고, 처리량은 앙상블이 8.4배, 100만 건당 비용은 약 8분의 1입니다.
-- AWQ 4bit는 fp16 대비 macro-F1 −0.0050(95% 구간 −0.0125 ~ +0.0020)으로 정확도를 거의 잃지 않았지만, T4에서는 처리량도 늘지 않았습니다.
+- **이 데이터와 T4 조건에서 LoRA 소형 LLM이 인코더 앙상블보다 낫다는 근거는 없었습니다.** GPT-4o 라벨 기준 macro-F1은 kanana LoRA가 0.0105 높지만, test 문항을 다시 뽑는 부트스트랩(1,000회)의 95% 구간이 −0.0017 ~ +0.0226으로 0을 포함합니다. Midm LoRA는 −0.0029(−0.0150 ~ +0.0092)로 차이가 없고, Qwen3-4B LoRA는 −0.0454(−0.0584 ~ −0.0326)로 앙상블보다 낮습니다([reports/diagnostics/](reports/diagnostics/), `make compare`). 독립 재라벨 기준으로는 앙상블이 세 LoRA보다 모두 높고, 처리량은 앙상블이 kanana LoRA의 8.4배, 100만 건당 비용은 약 8분의 1입니다.
+- 모델이 크다고 점수가 높지 않았습니다. 가장 큰 Qwen3-4B가 세 LoRA 중 가장 낮았고 처리량도 kanana·Midm의 약 0.6배였습니다. kanana와 Midm의 차이(+0.0134, 95% 구간 +0.0027 ~ +0.0241)는 작지만 0을 넘습니다.
+- AWQ 4bit는 fp16 대비 macro-F1이 kanana −0.0050(95% 구간 −0.0125 ~ +0.0020), Midm −0.0088(−0.0154 ~ −0.0019), Qwen3-4B −0.0120(−0.0198 ~ −0.0043)이었습니다. kanana만 구간이 0을 포함하고, Midm·Qwen3-4B는 작지만 실제로 떨어졌습니다. T4에서는 세 모델 모두 처리량 차이가 3% 안이었습니다.
+- Qwen3-4B는 AWQ 보정을 fp16으로 하면 마지막 층에서 오차가 `inf`가 되어 멈춰, fp32로 보정했습니다. 같은 병합본을 transformers에서 fp16과 fp32로 돌린 test 512건의 라벨이 511건 같고 fp16 연산에 넘침이 없어, vLLM fp16 평가값은 그대로 씁니다([reports/diagnostics/qwen3_fp16.md](reports/diagnostics/qwen3_fp16.md)).
+- Midm LoRA는 공식 채팅 템플릿에서 기본 시스템 문구를 빼고 assistant 차례를 모델이 실제로 내는 종료 토큰으로 닫게 고친 템플릿으로 학습했습니다([reports/diagnostics/midm_template.md](reports/diagnostics/midm_template.md)). 이 템플릿으로 잰 제로샷·퓨샷을 'LoRA용 템플릿' 행에 따로 적었습니다.
 - 앙상블 α는 원 코드가 test에서 고른 값이라 앙상블 점수는 그만큼 낙관적입니다. 문장 단위 앙상블의 Dual KR-BERT는 로컬 Apple M4에서, KoELECTRA는 T4에서 학습했습니다.
 - 비용은 Colab 종량제 요금으로 환산한 T4 $0.1069/h를 썼습니다(근거는 [docs/kaggle_t4.md](docs/kaggle_t4.md)). 측정은 Kaggle 무료 T4에서 했습니다. 인코더는 배치 순전파, LLM은 HTTP 서버 경유로 재서 인코더 쪽에는 서버 오버헤드가 빠져 있습니다.
 - 수치는 [reports/metrics/](reports/metrics/)·[reports/throughput/](reports/throughput/)의 json에서 옮겼고, 전체 표는 [reports/RESULTS.md](reports/RESULTS.md)에 있습니다. 무효 응답(7개 라벨 밖 출력)은 모든 LLM 실행에서 0건입니다.
@@ -176,6 +186,7 @@ jeju-emotion-lora/
 - **QLoRA 대신 LoRA를 썼습니다.** 4bit로 학습하면 병합 대상 가중치가 원본과 달라져 "양자화 전후" 비교에 학습 단계의 양자화가 섞입니다. T4에서는 기반 가중치 fp16 + AMP fp16으로 학습했습니다.
 - **출력을 라벨 7개로 묶었습니다.** vLLM structured outputs의 `choice`로 생성 자체를 라벨 이름으로 제한해, 모델 간 차이가 출력 형식 실수가 아니라 분류에서 나오게 했습니다. 제약 없이 돌리는 옵션(`--no-constrained`)과 파싱 실패율 지표도 남겼습니다.
 - **재라벨은 블라인드로 했습니다.** GPT-4o 라벨을 보고 고르면 그 라벨에 끌려갑니다. 판정마다 검수자·시각·결정을 한 줄씩 기록하고, 재라벨이 GPU 실행보다 늦게 끝나도 저장된 예측으로 다시 채점합니다(`make rescore`).
+- **양자화 실패와 평가값을 나눠 확인했습니다.** Qwen3-4B의 AWQ가 fp16 보정에서 멈췄을 때, 같은 fp16으로 잰 평가값도 넘침의 영향을 받았을 수 있었습니다. 병합본을 fp16과 fp32로 같은 test 512건에 돌려 층별 출력 크기와 라벨을 비교해 추론에는 넘침이 없다는 것을 확인했습니다. 실패는 보정 라이브러리가 제곱 오차 합을 fp16으로 계산하는 데서 나는 것으로 보여(라이브러리 코드와 실패 로그 기준), 보정만 fp32로 바꿨습니다.
 - **처리량을 잴 때 정밀도를 확인했습니다.** 처음 잰 인코더 처리량(103.9건/s)의 기록을 보니 정밀도가 T4에 없는 bf16이었습니다. `torch.cuda.is_bf16_supported()`가 T4에서도 에뮬레이션으로 True를 돌려준 탓이라, compute capability로 고르게 고치고 fp16으로 다시 재 717.4건/s를 얻었습니다. 첫 값을 썼다면 앙상블이 LLM과 비슷한 속도로 보였을 것입니다.
 - **비용은 공식만 고정했습니다.** `$/100만 건 = GPU $/h ÷ (건/s × 3600) × 10⁶`. 시간당 요금은 실행할 때 입력으로 받습니다.
 - **학습·서빙·양자화 환경을 나눴습니다.** vllm 0.30.0은 compressed-tensors 0.17.0을, llmcompressor 0.14.0은 0.19.0을 요구해 한 환경에 설치되지 않습니다. Colab VM에서는 서빙용과 양자화용 venv를 따로 만들었습니다.
@@ -187,8 +198,9 @@ jeju-emotion-lora/
 - 인코더 실행 환경이 섞였습니다. 문장 단위 Dual KR-BERT는 Apple M4 MPS에서 원 코드의 `--fp16`(bf16 autocast)으로, 문장 단위 KoELECTRA와 원 행 단위 세 모델은 T4에서 fp32로 학습했습니다. 원 코드에는 GradScaler가 없어 T4에서 fp16 autocast로 바꿔 쓰지 않았습니다.
 - 원 코드는 앙상블 가중치 α를 test 분할에서 고릅니다. 앙상블 값은 그만큼 낙관적이고, 이 저장소는 그 방식을 그대로 둡니다.
 - 원 코드의 보고서 txt(`step*_report.txt`)는 감정 1·2의 이름이 뒤바뀐 채로 찍힙니다. 번호와 지표는 맞고, 감정별 표를 읽을 때 이름만 바꿔 읽어야 합니다.
-- 인코더 처리량은 배치 순전파로, LLM은 HTTP 서버 경유로 잽니다. 인코더 쪽에는 서버 오버헤드가 빠져 있습니다. kanana 부하 측정은 같은 VM의 다른 GPU에서 인코더 학습이 돌던 시간에 했습니다.
+- 인코더 처리량은 배치 순전파로, LLM은 HTTP 서버 경유로 잽니다. 인코더 쪽에는 서버 오버헤드가 빠져 있습니다. kanana·Midm 부하 측정은 같은 VM의 다른 GPU에서 학습이 돌던 시간에 했고(CPU 4개 공유), Qwen3-4B와 인코더는 다른 작업 없이 쟀습니다.
 - 처리량은 한 번씩만 쟀습니다. 반복 측정의 편차는 없습니다.
+- LoRA는 모델마다 한 번(seed 42)만 학습했습니다. 부트스트랩 구간은 test 문항 표본의 흔들림만 반영하고, 학습 시드에 따른 편차는 들어 있지 않습니다.
 - 계획에 있던 LoRA 랭크 비교(8/16/32)와 학습 데이터 비율 곡선(10/30/100%)은 이번 범위에서 뺐습니다.
 
 ## 라이선스

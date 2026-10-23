@@ -1,0 +1,18 @@
+{
+  "completed": 5000,
+  "errors": 0,
+  "wall_s": 57.859881599999426,
+  "items_per_s": 86.41566248901638,
+  "latency_p50_s": 0.7159032039999147,
+  "latency_p95_s": 0.9126417669995135,
+  "latency_p99_s": 0.9826307530001941,
+  "tag": "lora_midm-2.0-mini_awq",
+  "system": "vllm",
+  "model": "lora_midm-2.0-mini_awq",
+  "concurrency": 64,
+  "gpu": "Tesla T4",
+  "precision": "awq-w4a16",
+  "split": "splits_sentence",
+  "n_requested": 5000,
+  "measured_at": "2026-10-16T10:29:26+0000"
+}

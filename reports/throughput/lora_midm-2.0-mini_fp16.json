@@ -1,0 +1,18 @@
+{
+  "completed": 5000,
+  "errors": 0,
+  "wall_s": 57.57354505799958,
+  "items_per_s": 86.8454425546143,
+  "latency_p50_s": 0.719907102000434,
+  "latency_p95_s": 0.8776816789995792,
+  "latency_p99_s": 0.9445711329990445,
+  "tag": "lora_midm-2.0-mini_fp16",
+  "system": "vllm",
+  "model": "lora_midm-2.0-mini_fp16",
+  "concurrency": 64,
+  "gpu": "Tesla T4",
+  "precision": "fp16",
+  "split": "splits_sentence",
+  "n_requested": 5000,
+  "measured_at": "2026-10-16T10:12:10+0000"
+}

@@ -60,14 +60,25 @@ def score(preds: list[dict], gold: dict[int, int]) -> dict:
     return result
 
 
-def rescore_all(pred_dir: str | Path, metrics_dir: str | Path, gold: dict[int, int]) -> list[str]:
-    """저장된 예측으로 지표를 다시 계산한다. 재라벨이 GPU 실행보다 늦게 끝나도 된다."""
+def rescore_all(
+    pred_dir: str | Path,
+    metrics_dir: str | Path,
+    gold: dict[int, int],
+    split: str | None = None,
+) -> list[str]:
+    """저장된 예측으로 지표를 다시 계산한다. 재라벨이 GPU 실행보다 늦게 끝나도 된다.
+
+    split을 주면 그 분할에서 잰 지표만 고친다. 재라벨 문항은 문장 단위 test에서 뽑았으므로
+    원 행 단위 분할 지표에 붙이면 우연히 겹친 몇십 건으로 잰 값이 된다.
+    """
     updated = []
     for mpath in sorted(Path(metrics_dir).glob("*.json")):
         ppath = Path(pred_dir) / f"{mpath.stem}.jsonl"
         if not ppath.exists():
             continue
         out = json.loads(mpath.read_text(encoding="utf-8"))
+        if split is not None and out.get("split") not in (None, split):
+            continue
         out.update(score(read_jsonl(ppath), gold))
         mpath.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n")
         updated.append(mpath.stem)
@@ -81,8 +92,15 @@ def rescore_main() -> None:
     p.add_argument("--gold", default=DEFAULT_GOLD)
     p.add_argument("--pred-dir", default="outputs/predictions")
     p.add_argument("--metrics-dir", default="reports/metrics")
+    p.add_argument(
+        "--split", default=split_name(DEFAULT_TEST), help="재라벨 문항을 뽑은 분할 (비우면 전부)"
+    )
     args = p.parse_args()
-    print(rescore_all(args.pred_dir, args.metrics_dir, load_gold(args.gold)))
+    if not Path(args.gold).exists():
+        # 없는 파일을 주면 load_gold가 빈 dict를 돌려줘 이미 붙은 재라벨 지표가 전부 지워진다
+        p.error(f"재라벨 파일이 없다: {args.gold}")
+    split = args.split or None
+    print(rescore_all(args.pred_dir, args.metrics_dir, load_gold(args.gold), split))
 
 
 def main() -> None:

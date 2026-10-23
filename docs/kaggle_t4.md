@@ -1,6 +1,6 @@
 # Kaggle T4 실행 기록
 
-2026-10-16에 Kaggle 무료 GPU(T4 두 장)로 GPU 단계를 돌린 절차와 결과다.
+2026-10-16과 10-23에 Kaggle 무료 GPU(T4 두 장)로 GPU 단계를 돌린 절차와 결과다.
 전날 Colab VM이 끊겨 결과 일부를 잃었고([colab_t4.md](colab_t4.md)), 이날 오전에는 Colab 무료 T4 할당이 503으로 거절돼 Kaggle로 옮겼다.
 모든 수치는 `reports/` 아래 파일에서 나온다. 결과 표는 [reports/RESULTS.md](../reports/RESULTS.md).
 
@@ -64,10 +64,34 @@ kanana 학습은 `train_runtime` 6,815초(4.36 s/스텝), 학습 손실 0.272, �
 
 인코더 처리량만 fp16으로 다시 쟀다. GPU 한 장, 다른 작업 없이 돌았다.
 
-### jeju-k2 (커밋 02af434, 07:54 UTC 시작)
+### jeju-k2 (커밋 02af434, 07:54 UTC 시작, 4시간 4분)
 
-Midm LoRA용 템플릿 기준선과 Midm·Qwen3-4B LoRA(학습 → 병합 → fp16 평가 → AWQ → 평가)를 두 GPU에서 동시에 돌린다.
-결과가 나오면 이 절을 채운다.
+Midm LoRA용 템플릿 기준선과 Midm·Qwen3-4B LoRA(학습 → 병합 → fp16 평가 → AWQ → 평가)를 두 GPU에서 동시에 돌렸다.
+
+| GPU | 단계 | 시작 (UTC) | 소요 |
+|---|---|---|---:|
+| 0 | 패키지 설치 (학습·서빙·양자화) | 07:54 | 2분 |
+| 0 | Midm 제로샷·퓨샷 (LoRA용 템플릿) | 07:56 | 10분 |
+| 0 | Midm LoRA 학습 (50,000행, 1,563스텝) | 08:05 | 2시간 0분 |
+| 0 | 병합 → fp16 평가·부하 측정 | 10:05 | 6분 |
+| 0 | AWQ 양자화 → 평가·부하 측정 | 10:12 | 17분 |
+| 1 | Qwen3-4B LoRA 학습 (50,000행, 1,563스텝) | 07:56 | 3시간 38분 |
+| 1 | 병합 → fp16 평가·부하 측정 | 11:33 | 10분 |
+| 1 | AWQ 양자화 | 11:43 | 14분, 실패 (아래 문제 6) |
+
+학습 시간은 Midm 7,018초(4.49 s/스텝), Qwen3-4B 12,740초(8.15 s/스텝)였다
+([reports/train/](../reports/train/)). Midm fp16·AWQ 부하 측정은 GPU 1에서 Qwen3-4B 학습이 돌던 시간에 했다.
+
+### jeju-k3 (커밋 fe33910, 2026-10-23 00:46 UTC 시작, 1시간 20분)
+
+k2의 Qwen3-4B 어댑터(`kernel_sources`로 붙인 k2 출력)를 다시 병합하고, fp16 평가값 검증과 fp32 보정 AWQ를 돌렸다.
+
+| GPU | 단계 | 시작 (UTC) | 소요 |
+|---|---|---|---:|
+| 0 | 패키지 설치, 병합 | 00:46 | 4분 |
+| 0·1 | fp16·fp32 비교 진단 (test 512건) | 00:50 | 21분 |
+| 0 | AWQ 양자화 (`QUANT_DTYPE=float32`) | 01:11 | 47분 |
+| 0 | AWQ 평가·부하 측정 | 01:58 | 8분 |
 
 ## 설계와 달라진 점
 
@@ -92,12 +116,18 @@ Midm LoRA용 템플릿 기준선과 Midm·Qwen3-4B LoRA(학습 → 병합 → fp
    `PORT`를 받아 `predict`·`loadtest`에 `--base-url`로 넘기게 했다(02af434).
 5. **무해한 경고.** vLLM·양자화 venv에서 `Error in sitecustomize … No module named 'wrapt'`가 찍힌다.
    Kaggle 기본 파이썬의 sitecustomize가 venv에 없는 wrapt를 불러서 나는 메시지이고, 서빙·양자화 결과에는 영향이 없었다.
+6. **Qwen3-4B AWQ fp16 보정 실패.** 마지막 층 `post_attention_layernorm → MLP` 격자 탐색 20개 격자점의 오차가 모두 `inf`가 되어
+   `Exception: No finite loss was found in best scalesgrid search`로 멈췄다(k2). T4에는 bf16이 없어 fp16 말고는 fp32뿐이다.
+   같은 병합본을 fp16과 fp32로 test 512건에 돌려 보니 추론에는 넘침이 없고 라벨이 511건 같았다. llm-compressor가 제곱 오차 합을
+   fp16 텐서로 계산하는 것이 원인으로 보여, `quantize --dtype float32`를 넣고(fe33910) 보정만 fp32로 다시 했다(k3).
+   측정과 근거는 [reports/diagnostics/qwen3_fp16.md](../reports/diagnostics/qwen3_fp16.md).
 
 ## 측정 조건
 
 - LLM 처리량은 vLLM OpenAI 호환 서버에 동시 요청 64개로 test 앞 5,000건을 보내 쟀다. 인코더는 배치 128 순전파로 쟀다.
   인코더 쪽에는 HTTP 서버 오버헤드가 없다.
-- kanana fp16·AWQ 부하 측정은 다른 GPU에서 E2 학습이 돌던 시간에 했다(CPU 4개 공유). 인코더 처리량(kb1)은 다른 작업 없이 쟀다.
+- kanana fp16·AWQ 부하 측정은 다른 GPU에서 E2 학습이, Midm은 Qwen3-4B 학습이 돌던 시간에 했다(CPU 4개 공유).
+  Qwen3-4B fp16(k2)·AWQ(k3)와 인코더 처리량(kb1)은 다른 작업 없이 쟀다.
 - 원 코드는 앙상블 가중치 α를 test에서 고른다(문장 단위 0.50, 원 행 단위 0.55). 앙상블 값은 그만큼 낙관적이다.
 - $/100만 건은 Colab 종량제 요금 $9.99/100 컴퓨팅 단위(2026-10-15 조회)에 T4 세션 소비율 1.07단위/h
   (2026-10-15 `colab usage` 실측)를 곱한 $0.1069/h로 계산했다. Kaggle 실행 자체는 무료다.

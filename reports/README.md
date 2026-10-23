@@ -1,6 +1,6 @@
 # reports
 
-이 폴더의 결과 파일은 모두 스크립트가 만든다. GPU 결과는 Colab T4(2026-10-15)와 Kaggle T4(2026-10-16)에서 쟀다
+이 폴더의 결과 파일은 모두 스크립트가 만든다. GPU 결과는 Colab T4(2026-10-15)와 Kaggle T4(2026-10-16, 10-23)에서 쟀다
 (절차·버전·문제는 [docs/colab_t4.md](../docs/colab_t4.md), [docs/kaggle_t4.md](../docs/kaggle_t4.md)).
 평가는 문장 단위 분할 test 10,496건이다. 원 행 단위 분할 값은 태그 끝에 `_row`가 붙는다.
 
@@ -14,6 +14,7 @@
 | `diagnostics/row_split_seen_unseen.{md,json}` | `make unseen-eval` | 원 행 단위 분할 test를 train에 있는/없는 문장으로 나눈 정확도·감정별 재현율 |
 | `diagnostics/compare_{A}__{B}.json` | `make compare A=… B=…` | 두 구성의 macro-F1 차이와 부트스트랩 95% 구간 |
 | `diagnostics/midm_template.md` | 문서 안의 스크립트 | Midm 학습이 막힌 원인을 잰 기록 |
+| `diagnostics/qwen3_fp16.md` | 문서 안의 스크립트 | Qwen3-4B fp16 평가값 검증과 AWQ fp16 보정 실패 원인 |
 | `RESULTS.md` | `make report` | 위 파일을 모은 표와 $/100만 건 |
 
 `RESULTS.md`는 손으로 고치지 않는다. 파일이 없는 칸은 '측정 전', `configs/report.yaml`에 `not_run` 사유가 적힌 행은
