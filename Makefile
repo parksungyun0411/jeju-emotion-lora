@@ -19,6 +19,10 @@ GPU_NAME ?=
 GPU_USD_PER_HOUR ?=
 PRICE_NOTE ?=
 CONCURRENCY ?= 64
+AIHUB_ZIP ?= $(HOME)/Desktop/Projects/Datasets/제주어/한국어 방언 발화(제주도)/Training/[라벨]제주도_학습용데이터_1.zip
+PASS     ?= evalA
+ENCODER  ?= runs/v2/dapt_krbert
+INPUT    ?= jeju
 
 HF_ID    = $(shell $(PY) -m jeju_lora.config $(MODEL) hf_id)
 REVISION = $(shell $(PY) -m jeju_lora.config $(MODEL) revision)
@@ -28,10 +32,11 @@ TAG = lora_$(MODEL)_$(VARIANT)
 
 .PHONY: help setup-dev test lint smoke setup-gpu split verify-split leakage unseen-eval split-sentence original encoder-eval \
         review-sample review-label review-report zeroshot fewshot train merge quantize \
-        eval-lora bench-encoder report rescore compare
+        eval-lora bench-encoder report rescore compare \
+        v2-data v2-verify v2-check v2-finalize v2-dapt v2-train
 
 help:
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-15s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-15s %s\n", $$1, $$2}'
 
 # ── 로컬 ────────────────────────────────────────────────
 setup-dev: ## 로컬 개발 환경 (.venv, Python 3.12)
@@ -131,3 +136,25 @@ rescore: ## 재라벨이 끝난 뒤 저장된 예측으로 지표 재계산 (GOL
 compare: ## 두 구성의 macro-F1 차이 부트스트랩 95% 구간 (A=태그 B=태그) → reports/diagnostics/compare_A__B.json
 	@test -n "$(A)" -a -n "$(B)" || { echo "A=태그 B=태그 필요 (outputs/predictions/{태그}.jsonl)"; exit 1; }
 	$(PY) -m jeju_lora.compare $(A) $(B)
+
+# ---- 라벨 v2 (docs/v2_progress.md) ----
+v2-data: ## 라벨 v2 문장 풀·분할·표본·배치 + DAPT 말뭉치 → data/v2 (AIHUB_ZIP=라벨 zip)
+	$(PY) -m jeju_lora.v2.pool --zip "$(AIHUB_ZIP)" --out data/v2
+	$(PY) -m jeju_lora.v2.dapt corpus --zip "$(AIHUB_ZIP)" --out data/v2/corpus_train.txt
+
+v2-verify: ## data/v2가 기록된 체크섬과 같은지 (다른 컴퓨터에서 다시 만든 뒤)
+	shasum -a 256 -c docs/v2_checksums.sha256
+
+v2-check: ## 라벨 파일 검증: id·순서·head 대조 (PASS=train|evalA|evalB|cueA|cueB)
+	$(PY) -m jeju_lora.v2.collect check --batches data/v2/batches/$(PASS) --labels data/v2/labels/$(PASS)
+
+v2-finalize: ## 확정 라벨 → data/v2/final, data/splits_v2
+	$(PY) -m jeju_lora.v2.collect finalize
+
+v2-dapt: ## KR-BERT 제주어 토큰 추가 + MLM 1에폭 (M4 약 2시간) → runs/v2/dapt_krbert
+	$(PY) -m jeju_lora.v2.dapt train --base snunlp/KR-BERT-char16424 --corpus data/v2/corpus_train.txt \
+	  --out runs/v2/dapt_krbert --max-lines 400000 --epochs 1
+
+v2-train: ## 인코더 학습 (ENCODER=경로|HF ID, INPUT=jeju|dual) → runs/v2/<이름>_<INPUT>
+	$(PY) -m jeju_lora.v2.train_encoder --encoder $(ENCODER) --input $(INPUT) \
+	  --out runs/v2/$(notdir $(ENCODER))_$(INPUT)
