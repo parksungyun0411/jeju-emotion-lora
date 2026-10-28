@@ -3,6 +3,7 @@
 이 폴더의 결과 파일은 모두 스크립트가 만든다. GPU 결과는 Colab T4(2026-10-15)와 Kaggle T4(2026-10-16, 10-23)에서 쟀다
 (절차·버전·문제는 [docs/colab_t4.md](../docs/colab_t4.md), [docs/kaggle_t4.md](../docs/kaggle_t4.md)).
 평가는 문장 단위 분할 test 10,496건이다. 원 행 단위 분할 값은 태그 끝에 `_row`가 붙는다.
+`RESULTS.md` 행 이름의 '원 코드'는 원 저장소의 재현 코드 `src/jeju_kr_bert.py`다(발표 때 코드는 남아 있지 않다).
 
 | 경로 | 만드는 명령 | 내용 |
 |---|---|---|

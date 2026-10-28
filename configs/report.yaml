@@ -3,7 +3,7 @@
 # 분할·정밀도·백엔드 열은 각 파일에 기록된 값이다(2026-10-15 Colab T4 실행은 문장 단위 분할, fp16).
 # 2026-10-16부터는 Kaggle 무료 T4에서 잰다(docs/kaggle_t4.md).
 rows:
-  # 원 프로젝트 인코더 코드를 문장 단위 분할로 다시 학습한 값 (python -m jeju_lora.encoder_eval)
+  # 원 저장소 재현 코드(jeju_kr_bert.py, 행 이름의 '원 코드')를 문장 단위 분할로 다시 학습한 값 (python -m jeju_lora.encoder_eval)
   - name: Dual-Gated KR-BERT (원 코드)
     metrics: encoder_dual_sentence
   - name: KoELECTRA (원 코드)

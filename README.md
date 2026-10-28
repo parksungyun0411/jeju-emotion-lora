@@ -2,7 +2,9 @@
 
 [![CI](https://github.com/parksungyun0411/jeju-emotion-lora/actions/workflows/ci.yml/badge.svg)](https://github.com/parksungyun0411/jeju-emotion-lora/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white) ![상태](https://img.shields.io/badge/상태-완료-brightgreen) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-졸업 프로젝트 [jeju-emotion-analysis](https://github.com/parksungyun0411/jeju-emotion-analysis)(제주어 7감정 분류)의 결과를 다시 검증하고, 같은 데이터에서 소형 LLM을 LoRA로 학습해 원 프로젝트의 KoELECTRA + Dual KR-BERT 앙상블과 비교하는 프로젝트입니다. 학습한 모델은 병합 → AWQ 4bit 양자화 → vLLM 서빙까지 이어서, 정확도와 함께 처리량과 100만 건당 비용을 한 표에 놓습니다.
+졸업 프로젝트 [jeju-emotion-analysis](https://github.com/parksungyun0411/jeju-emotion-analysis)(제주어 7감정 분류)의 결과를 다시 검증하고, 같은 데이터에서 소형 LLM을 LoRA로 학습해 원 저장소의 재현 코드로 다시 학습한 KoELECTRA + Dual KR-BERT 앙상블과 비교하는 프로젝트입니다. 학습한 모델은 병합 → AWQ 4bit 양자화 → vLLM 서빙까지 이어서, 정확도와 함께 처리량과 100만 건당 비용을 한 표에 놓습니다.
+
+이 README에서 '원 코드'는 원 저장소의 재현 코드 `src/jeju_kr_bert.py`입니다. 발표 때 점수를 만든 코드는 남아 있지 않아, 졸업 뒤(2026년 5월) 발표 자료의 구조와 하이퍼파라미터를 보고 다시 짠 이 코드를 고치지 않고 씁니다. 이 코드의 앙상블은 Dual-Gated KR-BERT와 KoELECTRA 두 모델만 결합해, 발표 자료의 4~6단계를 누적한 모델과 다릅니다(원 저장소 README '딥러닝 재현 코드').
 
 다시 검증하면서 두 가지를 찾았습니다.
 
@@ -58,7 +60,7 @@
 
 - 원 프로젝트와 같은 방식(행 단위 7:1:2 층화)과 원 저장소 재현 코드의 시드(seed 42)로 다시 나눈 행 단위 분할과, 같은 파일에 원 저장소 분할 함수를 돌린 결과와의 row_id 단위 대조
 - 중복 문장 누수 진단(`make leakage`)과 문장 단위 분할(`make split-sentence`)
-- 원 프로젝트 인코더 코드는 고치지 않고 불러와, 분할 함수만 문장 단위로 바꿔 끼워 다시 학습(`python -m jeju_lora.run_original`)
+- 원 저장소의 재현 코드(`jeju_kr_bert.py`)는 고치지 않고 불러와, 분할 함수만 문장 단위로 바꿔 끼워 다시 학습(`python -m jeju_lora.run_original`)
 - 재라벨 평가셋 도구: 감정별 층화 표본 추출, 블라인드 터미널 라벨링(검수자·시각·결정 기록), GPT-4o 대비 일치율·Cohen's κ 보고. 이번 Claude 재라벨은 이 터미널 도구를 쓰지 않고 한 번에 기록했습니다(아래 '재라벨은 블라인드로 했습니다')
 - 제로샷·퓨샷 기준선(클래스당 1개 예시)
 - PEFT LoRA + TRL `SFTTrainer` 학습(라벨 이름에만 손실), 어댑터 병합
@@ -76,7 +78,7 @@ flowchart LR
     D["원 라벨링 파일<br/>127,307행 · GPT-4o 라벨"] --> K["누수 진단<br/>원 분할 test 행 70.4%가 train과 같은 문장"]
     K --> S["문장 단위 7:1:2 분할<br/>seed 42 · train과 겹침 0"]
     S -- train --> L["LoRA 학습<br/>PEFT + TRL"]
-    S -- train --> E["KoELECTRA + Dual KR-BERT<br/>원 프로젝트 코드"]
+    S -- train --> E["KoELECTRA + Dual KR-BERT<br/>원 저장소 재현 코드"]
     S -- test --> H["독립 재라벨 277건<br/>Claude · 블라인드"]
     L --> M["병합 fp16"] --> Q["AWQ W4A16"]
     M --> V["vLLM 서빙"]

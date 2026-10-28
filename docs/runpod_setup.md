@@ -17,7 +17,7 @@
 | 단계 | 내용 | 예상 시간 |
 |---|---|---:|
 | 준비 | 환경 설치, 모델 다운로드 | 0.5h |
-| ① | 원 프로젝트 Dual KR-BERT·KoELECTRA 재학습 + 앙상블 | 1h |
+| ① | 원 저장소 재현 코드로 Dual KR-BERT·KoELECTRA 재학습 + 앙상블 | 1h |
 | ③ | 제로샷·퓨샷 3모델 × 2 (test 25,463건) | 1h |
 | ④ | LoRA 학습 3모델 × 1 epoch (train 89,118건) | 2.5h |
 | ⑥ | 병합 + AWQ 양자화 3모델 | 1h |
@@ -87,7 +87,7 @@ make report GPU_USD_PER_HOUR=<실제 요금> GPU_NAME="RTX 4090"
 2. AWQ 체크포인트 호환: llm-compressor 0.14.0(compressed-tensors 0.19.0)이 저장한 W4A16_ASYM 체크포인트를
    vLLM 0.30.0(compressed-tensors 0.17.0)이 그대로 읽었다(2026-10-15 T4, `Using MarlinLinearKernel for CompressedTensorsWNA16`).
    llmcompressor 0.12.0으로 내릴 필요는 없었다.
-3. 원 프로젝트 코드는 transformers 4.x 기준이라 `.venv-orig`(transformers<5)에서 돌린다.
+3. 원 저장소 재현 코드(`jeju_kr_bert.py`)는 transformers 4.x 기준이라 `.venv-orig`(transformers<5)에서 돌린다.
 4. Midm-2.0-Mini는 공식 채팅 템플릿의 기본 시스템 문구 때문에 학습 예시가 559~592토큰이라 `max_length: 256`에서
    정답이 모두 잘리고, 템플릿의 답 끝 토큰(`<|eot_id|>`)이 모델이 실제로 내는 `<|end_of_text|>`와 다르다.
    `configs/chat_templates/midm-2.0-mini.jinja`를 쓴다(근거: [reports/diagnostics/midm_template.md](../reports/diagnostics/midm_template.md)).
