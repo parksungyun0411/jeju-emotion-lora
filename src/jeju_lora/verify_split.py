@@ -29,7 +29,8 @@ _CANDIDATES = [
 ]
 DEFAULT_ORIGINAL_REPO = next((c for c in _CANDIDATES if c.exists()), _CANDIDATES[0])
 ORIGINAL_FILE = "src/jeju_kr_bert.py"
-# 원 저장소 docs/bert_improvement_report.md에 적힌 분할 크기
+# 원 저장소 docs/bert_improvement_report.md에 적힌 분할 크기(전처리 후 127,313행 기준).
+# 지금 라벨링 파일은 전처리 후 127,307행이라 크기가 다르다. 같은 절차·시드로 다시 나눈 분할이다.
 ORIGINAL_SIZES = {"train": 89_118, "val": 12_732, "test": 25_463}
 
 
@@ -72,6 +73,9 @@ def main() -> None:
     p.add_argument("--data", default=DEFAULT_XLSX)
     p.add_argument("--original-repo", default=str(DEFAULT_ORIGINAL_REPO))
     p.add_argument("--manifest", default="reports/split_manifest.json")
+    p.add_argument(
+        "--strict-sizes", action="store_true", help="분할 크기가 원 보고서와 다르면 실패로 끝낸다"
+    )
     args = p.parse_args()
 
     if not Path(args.data).exists():
@@ -85,10 +89,16 @@ def main() -> None:
             raise SystemExit("split_manifest.json의 test 해시와 다르다")
     sizes = {k: v["n"] for k, v in result.items()}
     if sizes != ORIGINAL_SIZES:
-        raise SystemExit(f"분할 크기가 원 보고서와 다르다: {sizes} != {ORIGINAL_SIZES}")
+        msg = (
+            f"분할 크기가 원 보고서와 다르다: {sizes} != {ORIGINAL_SIZES} "
+            f"(원 보고서 {sum(ORIGINAL_SIZES.values()):,}행, 이 파일 {sum(sizes.values()):,}행)"
+        )
+        if args.strict_sizes:
+            raise SystemExit(msg)
+        print(f"경고: {msg}")
     if not all(v["match"] for v in result.values()):
-        raise SystemExit("원 프로젝트 분할과 다르다")
-    print("OK: train/val/test row_id 순서까지 원 프로젝트 분할과 같다")
+        raise SystemExit("원 저장소 분할 함수의 결과와 다르다")
+    print("OK: 같은 파일에서 train/val/test row_id 순서까지 원 저장소 분할 함수의 결과와 같다")
 
 
 if __name__ == "__main__":

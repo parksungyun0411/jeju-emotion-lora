@@ -11,7 +11,8 @@ MODEL    ?= qwen3-4b
 VARIANT  ?= bf16
 DATA     ?= data/raw/merged_jeju_balanced_sorted.xlsx
 ORIG     ?= $(HOME)/Documents/GitHub/personal/jeju-emotion-analysis
-ORIG_OUT ?= runs/original
+SPLIT    ?= sentence
+ORIG_OUT ?= runs/original_$(SPLIT)
 ALPHA    ?=
 REVIEWER ?=
 GOLD     ?= reviews/gold.jsonl
@@ -25,6 +26,10 @@ REVISION = $(shell $(PY) -m jeju_lora.config $(MODEL) revision)
 MODEL_DIR_bf16 = outputs/merged/$(MODEL)
 MODEL_DIR_awq  = outputs/awq/$(MODEL)
 TAG = lora_$(MODEL)_$(VARIANT)
+SPLIT_DIR_sentence = data/splits_sentence
+SPLIT_DIR_row      = data/splits
+ENC_TAG_sentence   = encoder_ensemble
+ENC_TAG_row        = encoder_ensemble_row
 
 .PHONY: help setup-dev test lint smoke setup-gpu split verify-split leakage unseen-eval split-sentence original encoder-eval \
         review-sample review-label review-report zeroshot fewshot train merge quantize \
@@ -49,11 +54,11 @@ smoke: ## 작은 랜덤 모델로 학습→병합→생성 경로 확인 (CPU)
 	$(PY) -m pytest -q -m smoke
 
 # ── ① 데이터·기존 수치 재현 ─────────────────────────────
-split: ## 원 프로젝트와 같은 7:1:2 분할 → data/splits/*.jsonl, reports/split_manifest.json
+split: ## 원 프로젝트와 같은 절차·시드의 행 단위 7:1:2 분할 → data/splits/*.jsonl, reports/split_manifest.json
 	$(PY) -m jeju_lora.data --data $(DATA)
 
-verify-split: ## 원 저장소의 분할 함수와 row_id 순서까지 대조
-	$(PY) -m jeju_lora.verify_split --data $(DATA) --original-repo $(ORIG)
+verify-split: ## 같은 파일에 원 저장소의 분할 함수를 돌려 row_id 순서까지 대조 (원 보고서와 크기가 다르면 경고, STRICT=1이면 실패)
+	$(PY) -m jeju_lora.verify_split --data $(DATA) --original-repo $(ORIG) $(if $(STRICT),--strict-sizes,)
 
 leakage: ## 원 행 단위 분할의 중복 문장 누수 진단 → reports/leakage.{md,json}
 	$(PY) -m jeju_lora.leakage --data $(DATA)
@@ -64,20 +69,16 @@ unseen-eval: ## 원 행 단위 분할 인코더 예측을 train에 있는/없는
 split-sentence: ## 문장 단위 7:1:2 분할 → data/splits_sentence/*.jsonl, reports/split_manifest_sentence.json
 	$(PY) -m jeju_lora.sentence_split --data $(DATA)
 
-original: ## 원 저장소 파이프라인으로 Dual KR-BERT·KoELECTRA·앙상블 재학습 (GPU, 원 저장소는 읽기만)
-	mkdir -p $(ORIG_OUT)
-	cd $(ORIG) && $(abspath $(ORIG_PY)) src/jeju_kr_bert.py --step dual --fp16 --epochs 6 --batch-size 64 \
-	  --data $(abspath $(DATA)) --output-dir $(abspath $(ORIG_OUT))
-	cd $(ORIG) && $(abspath $(ORIG_PY)) src/jeju_kr_bert.py --step koelectra --fp16 --epochs 6 --batch-size 128 \
-	  --data $(abspath $(DATA)) --output-dir $(abspath $(ORIG_OUT))
-	cd $(ORIG) && $(abspath $(ORIG_PY)) src/jeju_kr_bert.py --step ensemble \
-	  --dual-probs $(abspath $(ORIG_OUT))/step3_dual_probs.npz \
-	  --single-probs $(abspath $(ORIG_OUT))/branch1_koelectra_probs.npz --output-dir $(abspath $(ORIG_OUT))
+original: ## 원 인코더 코드를 원 하이퍼파라미터(7 epoch, 배치 64)로 재학습 (SPLIT=sentence|row, AMP=1이면 bf16 autocast, GPU, 원 저장소는 읽기만)
+	$(ORIG_PY) -m jeju_lora.run_original --split $(SPLIT) --steps dual koelectra ensemble \
+	  --data $(DATA) --original-repo $(ORIG) --out $(ORIG_OUT) $(if $(AMP),--amp,)
 
-encoder-eval: ## 앙상블 test 예측을 row_id에 붙여 재채점 (ALPHA=원 실행에서 고른 값)
-	@test -n "$(ALPHA)" || { echo "ALPHA=값 필요 ($(ORIG_OUT)/step7_ensemble 보고서 참고)"; exit 1; }
-	$(PY) -m jeju_lora.encoder_eval --dual-npz $(ORIG_OUT)/step3_dual_probs.npz \
-	  --single-npz $(ORIG_OUT)/branch1_koelectra_probs.npz --alpha $(ALPHA)
+encoder-eval: ## 앙상블 test 예측을 row_id에 붙여 재채점 (SPLIT=sentence|row, ALPHA=원 실행에서 고른 값, GOLD=재라벨)
+	@test -n "$(ALPHA)" || { echo "ALPHA=값 필요 ($(ORIG_OUT)/step7_ensemble_report.txt 참고)"; exit 1; }
+	$(PY) -m jeju_lora.encoder_eval --test $(SPLIT_DIR_$(SPLIT))/test.jsonl \
+	  --dual-npz $(ORIG_OUT)/step3_dual_probs.npz \
+	  --single-npz $(ORIG_OUT)/branch1_koelectra_probs.npz --alpha $(ALPHA) \
+	  --gold $(GOLD) --tag $(ENC_TAG_$(SPLIT))
 
 # ── ② 검수 평가셋 (독립 재라벨) ──────────────────────────────────
 review-sample: ## 감정별 층화 + 모델 불일치 우선 280건 추출

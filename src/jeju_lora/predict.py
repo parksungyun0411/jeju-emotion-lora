@@ -18,7 +18,7 @@ from jeju_lora.labels import parse_label
 from jeju_lora.metrics import classification_metrics
 from jeju_lora.prompts import build_messages, pick_few_shot
 
-# 원 행 단위 분할(data/splits)은 test의 70.4%가 train과 같은 문장이라(reports/leakage.md)
+# 원 행 단위 분할(data/splits)은 test 행의 70.4%가 train과 같은 문장이라(reports/leakage.md)
 # 기본 평가는 문장 단위 분할로 한다
 DEFAULT_TEST = "data/splits_sentence/test.jsonl"
 DEFAULT_TRAIN = "data/splits_sentence/train.jsonl"

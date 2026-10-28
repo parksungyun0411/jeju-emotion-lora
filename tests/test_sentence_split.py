@@ -22,6 +22,7 @@ def test_row_split_leaks_duplicates():
     o = split_overlap(tr, te)
     assert o["in_train"] > 0
     assert 0 < o["share"] <= 1
+    assert o["in_train_unique_sentences"] + o["unseen_unique_sentences"] == o["unique_sentences"]
 
 
 def test_sentence_split_has_no_overlap_and_drops_conflicts():

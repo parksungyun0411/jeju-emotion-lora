@@ -1,7 +1,7 @@
 # GPU 임대 서버 실행 가이드
 
-24GB GPU·bf16 기준으로 세운 계획이다. 실제 GPU 실행은 2026-10-15 Colab T4(fp16)에서 했고,
-그 절차·버전·막힌 곳은 [colab_t4.md](colab_t4.md)에 있다. 아래에서 그 실행으로 사실이 확인된 곳은 고쳐 적었다.
+24GB GPU·bf16 기준으로 세운 계획이다. 실제 GPU 실행은 2026-10-15 Colab T4와 2026-10-16·10-23 Kaggle T4(fp16)에서 했고,
+그 절차·버전·막힌 곳은 [colab_t4.md](colab_t4.md)와 [kaggle_t4.md](kaggle_t4.md)에 있다. 아래에서 그 실행으로 사실이 확인된 곳은 고쳐 적었다.
 
 ## 서버 조건
 
@@ -35,7 +35,7 @@
 
 - 원 저장소 스크립트가 가리키는 위치: `jeju-emotion-analysis/../2학기_감정분류/merged_jeju_balanced_sorted.xlsx`
 - 2026-10-03에는 이 Mac에서 찾지 못했고, 이후 찾아 `data/raw/merged_jeju_balanced_sorted.xlsx`에 두었다(전처리 후 127,307행).
-- 원 행 단위 분할은 test의 70.4%가 train과 같은 문장이라([reports/leakage.md](../reports/leakage.md)) 주 평가는
+- 원 행 단위 분할은 test 행의 70.4%가 train과 같은 문장이라([reports/leakage.md](../reports/leakage.md)) 주 평가는
   문장 단위 분할(`data/splits_sentence/`)로 한다. GPU 서버에는 분할 jsonl만 옮기면 된다.
 
 ## 실행 순서

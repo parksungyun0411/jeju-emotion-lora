@@ -21,6 +21,7 @@ from jeju_lora.data import (
     stratified_split_712,
 )
 from jeju_lora.labels import EMOTION_LABELS as LABELS
+from jeju_lora.verify_split import ORIGINAL_SIZES
 
 
 def duplicate_profile(df: pd.DataFrame) -> dict:
@@ -69,6 +70,8 @@ def split_overlap(train: pd.DataFrame, test: pd.DataFrame) -> dict:
         "share": round(float(in_train.mean()), 4),
         "same_sentence_and_label": int(same_pair.sum()),
         "unseen_rows": int((~in_train).sum()),
+        "unique_sentences": int(test[JEJU_COL].nunique()),
+        "in_train_unique_sentences": int(test.loc[in_train, JEJU_COL].nunique()),
         "unseen_unique_sentences": int(test.loc[~in_train, JEJU_COL].nunique()),
         "per_label": per_label,
     }
@@ -110,11 +113,19 @@ def render_markdown(report: dict) -> str:
         "",
         "## 원 분할(행 단위 7:1:2, seed 42)의 train·test 겹침",
         "",
+        "원 코드와 같은 절차·시드로 이 파일을 다시 나눈 분할이다. 원 보고서의 분할 크기("
+        + " / ".join(f"{v:,}" for v in ORIGINAL_SIZES.values())
+        + f")는 전처리 후 {sum(ORIGINAL_SIZES.values()):,}행 기준이고 "
+        f"이 파일은 {d['rows']:,}행이라, 원 실험의 분할과는 행 수부터 다르다.",
+        "",
         f"test {o['test_rows']:,}행 가운데 **{o['in_train']:,}행({o['share']:.1%})** 은 "
         "같은 제주어 문장이 train에 있다. "
         f"문장과 라벨이 모두 같은 행은 {o['same_sentence_and_label']:,}행이다. "
         f"train에 없는 문장은 {o['unseen_rows']:,}행"
-        f"(고유 문장 {o['unseen_unique_sentences']:,}개)이다.",
+        f"(고유 문장 {o['unseen_unique_sentences']:,}개)이다. "
+        f"행이 아니라 고유 문장으로 세면 test {o['unique_sentences']:,}문장 가운데 "
+        f"{o['in_train_unique_sentences']:,}문장"
+        f"({o['in_train_unique_sentences'] / o['unique_sentences']:.1%})이 train에 있다.",
         "",
         "| 감정 | test 행 | train에 같은 문장 | 비율 | train에 없는 행 |",
         "|---|---:|---:|---:|---:|",

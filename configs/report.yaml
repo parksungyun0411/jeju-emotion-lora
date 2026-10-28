@@ -47,7 +47,7 @@ rows:
   - name: Midm-2.0-Mini LoRA AWQ 4bit
     metrics: lora_midm-2.0-mini_awq
     throughput: lora_midm-2.0-mini_awq
-  # 원 행 단위 분할(test 70.4%가 train과 같은 문장)로 원 코드를 다시 돌린 값. 위 행들과 분할이 달라 비교하지 않는다.
+  # 원 행 단위 분할(test 행 70.4%가 train과 같은 문장)로 원 코드를 다시 돌린 값. 위 행들과 분할이 달라 비교하지 않는다.
   # train에 있는 문장과 없는 문장을 나눈 값은 reports/diagnostics/row_split_seen_unseen.md
   # 재라벨 277건은 문장 단위 분할 test에서 뽑아 이 분할과 맞지 않으므로 그 열은 비운다(no_human).
   - name: Dual-Gated KR-BERT (원 코드, 원 행 단위 분할)

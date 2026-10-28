@@ -51,6 +51,8 @@
     "share": 0.7036,
     "same_sentence_and_label": 17646,
     "unseen_rows": 7548,
+    "unique_sentences": 18557,
+    "in_train_unique_sentences": 11685,
     "unseen_unique_sentences": 6872,
     "per_label": {
       "0": {

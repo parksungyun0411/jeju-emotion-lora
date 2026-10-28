@@ -55,6 +55,7 @@ AWQ − fp16 macro-F1 차이는 −0.0120, 부트스트랩 95% 구간 −0.0198 
 ## 스크립트
 
 Kaggle 커널에서 `REPO=/tmp/repo python diag_qwen3_fp16.py 512 /tmp/diag.json`으로 돌렸다.
+그 출력 파일을 [qwen3_fp16.json](qwen3_fp16.json)에 그대로 두었다(row_id·정답·두 연산의 예측·층별 통계, 문장 원문 없음). 위 표의 수치는 이 파일에서 옮겼다.
 fp32 4B(16GB)는 T4 한 장에 안 들어가 두 장에 나눠 올렸다. 아래는 그 스크립트에 저장소 포맷터(ruff)만 적용한 것이다.
 
 ```python

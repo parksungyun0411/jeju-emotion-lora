@@ -6,7 +6,7 @@
 
 다시 검증하면서 두 가지를 찾았습니다.
 
-- **test 문장의 70.4%가 train에도 있었습니다.** 원 라벨링 파일은 감정별 행 수를 맞추려고 같은 문장을 최대 56번 복제했고, 원 코드는 행 단위로 나눴습니다. 그래서 원 분할 test 25,462행 가운데 17,914행은 같은 제주어 문장이 train에 있습니다([reports/leakage.md](reports/leakage.md)). 원 코드를 원 분할로 다시 돌리면 앙상블 macro-F1이 0.8393으로 원 README의 0.84가 재현됩니다. 하지만 train에 같은 문장이 있는 test 행의 정확도는 0.970, 없는 행은 0.561입니다([reports/diagnostics/row_split_seen_unseen.md](reports/diagnostics/row_split_seen_unseen.md)). 이 저장소는 고유 문장 기준으로 다시 나눈 **문장 단위 분할**(test 10,496문장, train과 겹침 0)로 평가합니다.
+- **test 행의 70.4%가 train에도 있는 문장이었습니다.** 원 라벨링 파일은 감정별 행 수를 맞추려고 같은 문장을 한 감정 안에서 최대 52번 복제했고, 원 코드는 행 단위로 나눴습니다. 원 코드와 같은 절차·시드로 다시 나눈 행 단위 분할에서 test 25,462행 가운데 17,914행은 같은 제주어 문장이 train에 있습니다. 고유 문장으로 세면 test 18,557문장 중 63.0%입니다([reports/leakage.md](reports/leakage.md)). 원 보고서의 분할 크기는 전처리 후 127,313행 기준이고 지금 파일은 127,307행이라, 원 실험의 분할 그 자체가 아니라 같은 절차로 다시 나눈 분할입니다. 이 분할로 원 코드를 다시 돌리면 앙상블 macro-F1이 0.8393으로 원 README의 0.84와 맞습니다. 하지만 train에 같은 문장이 있는 test 행의 정확도는 0.970, 없는 행은 0.561입니다([reports/diagnostics/row_split_seen_unseen.md](reports/diagnostics/row_split_seen_unseen.md)). 이 저장소는 고유 문장 기준으로 다시 나눈 **문장 단위 분할**(test 10,496문장, train과 겹침 0)로 평가합니다.
 - **감정 번호 1·2의 이름이 뒤바뀌어 있었습니다.** 원 코드의 보고서와 이 저장소의 첫 구현은 1=슬픔, 2=행복으로 적었습니다. 원 파일의 감정 번호와 GPT-4o 감정 이름 열을 교차표로 대조하면 1=행복, 2=슬픔입니다(`tests/test_labels.py`). 인코더 지표는 번호로 계산해 영향이 없지만, 감정 이름을 프롬프트에 넣는 LLM은 영향을 받습니다. 그래서 정정 전 LLM 실행 결과는 [reports/metrics/_invalid_swapped_names/](reports/metrics/_invalid_swapped_names/)로 옮기고 쓰지 않습니다.
 
 ## 결과 (문장 단위 분할 test 10,496건)
@@ -31,7 +31,7 @@
 | Qwen3-4B LoRA 병합 | Kaggle T4, vLLM fp16 | 0.4738 | 0.5113 | 0.4002 |
 | Qwen3-4B LoRA AWQ 4bit (fp32 보정) | Kaggle T4, vLLM | 0.4618 | 0.4967 | 0.3729 |
 
-처리량과 비용 (Tesla T4 한 장, test 앞 5,000건)
+처리량과 비용 (Tesla T4 한 장, 문장 단위 test 5,000건. LLM은 앞 200건으로 예열한 뒤 다음 5,000건, 인코더는 앞 5,000건)
 
 | 구성 | 측정 방식 | 건/s | p95 지연 | $/100만 건 |
 |---|---|---:|---:|---:|
@@ -43,7 +43,7 @@
 | Qwen3-4B LoRA 병합 | vLLM fp16, 동시 요청 64 | 50.6 | 1,345 ms | 0.59 |
 | Qwen3-4B LoRA AWQ 4bit | vLLM, 동시 요청 64 | 52.1 | 1,293 ms | 0.57 |
 
-- **이 데이터와 T4 조건에서 LoRA 소형 LLM이 인코더 앙상블보다 낫다는 근거는 없었습니다.** GPT-4o 라벨 기준 macro-F1은 kanana LoRA가 0.0105 높지만, test 문항을 다시 뽑는 부트스트랩(1,000회)의 95% 구간이 −0.0017 ~ +0.0226으로 0을 포함합니다. Midm LoRA는 −0.0029(−0.0150 ~ +0.0092)로 차이가 없고, Qwen3-4B LoRA는 −0.0454(−0.0584 ~ −0.0326)로 앙상블보다 낮습니다([reports/diagnostics/](reports/diagnostics/), `make compare`). 독립 재라벨 기준으로는 앙상블이 세 LoRA보다 모두 높고, 처리량은 앙상블이 kanana LoRA의 8.4배, 100만 건당 비용은 약 8분의 1입니다.
+- **이 데이터와 T4 조건에서 LoRA 소형 LLM이 인코더 앙상블보다 낫다는 근거는 없었습니다.** GPT-4o 라벨 기준 macro-F1은 kanana LoRA가 0.0105 높지만, test 문항을 다시 뽑는 부트스트랩(1,000회)의 95% 구간이 −0.0017 ~ +0.0226으로 0을 포함합니다. Midm LoRA는 −0.0029(−0.0150 ~ +0.0092)로 차이를 가리지 못했고, Qwen3-4B LoRA는 −0.0454(−0.0584 ~ −0.0326)로 앙상블보다 낮습니다([reports/diagnostics/](reports/diagnostics/), `make compare`). 독립 재라벨 277건에서는 점 추정치로 앙상블이 세 LoRA보다 높습니다(표본이 작아 구간은 내지 않았습니다). 처리량은 앙상블이 kanana LoRA의 8.4배, 100만 건당 비용은 약 8분의 1입니다.
 - 모델이 크다고 점수가 높지 않았습니다. 가장 큰 Qwen3-4B가 세 LoRA 중 가장 낮았고 처리량도 kanana·Midm의 약 0.6배였습니다. kanana와 Midm의 차이(+0.0134, 95% 구간 +0.0027 ~ +0.0241)는 작지만 0을 넘습니다.
 - AWQ 4bit는 fp16 대비 macro-F1이 kanana −0.0050(95% 구간 −0.0125 ~ +0.0020), Midm −0.0088(−0.0154 ~ −0.0019), Qwen3-4B −0.0120(−0.0198 ~ −0.0043)이었습니다. kanana만 구간이 0을 포함하고, Midm·Qwen3-4B는 작지만 실제로 떨어졌습니다. T4에서는 세 모델 모두 처리량 차이가 3% 안이었습니다.
 - Qwen3-4B는 AWQ 보정을 fp16으로 하면 마지막 층에서 오차가 `inf`가 되어 멈춰, fp32로 보정했습니다. 같은 병합본을 transformers에서 fp16과 fp32로 돌린 test 512건의 라벨이 511건 같고 fp16 연산에 넘침이 없어, vLLM fp16 평가값은 그대로 씁니다([reports/diagnostics/qwen3_fp16.md](reports/diagnostics/qwen3_fp16.md)).
@@ -56,10 +56,10 @@
 
 ## 구현 범위
 
-- 원 프로젝트와 같은 7:1:2 층화 분할(seed 42) 재현과, 원 저장소 분할 함수와의 row_id 단위 대조
+- 원 프로젝트와 같은 절차·시드(7:1:2 층화, seed 42)로 다시 나눈 행 단위 분할과, 같은 파일에 원 저장소 분할 함수를 돌린 결과와의 row_id 단위 대조
 - 중복 문장 누수 진단(`make leakage`)과 문장 단위 분할(`make split-sentence`)
 - 원 프로젝트 인코더 코드는 고치지 않고 불러와, 분할 함수만 문장 단위로 바꿔 끼워 다시 학습(`python -m jeju_lora.run_original`)
-- 재라벨 평가셋 도구: 감정별 층화 표본 추출, 블라인드 터미널 라벨링(검수자·시각·결정 기록), GPT-4o 대비 일치율·Cohen's κ 보고
+- 재라벨 평가셋 도구: 감정별 층화 표본 추출, 블라인드 터미널 라벨링(검수자·시각·결정 기록), GPT-4o 대비 일치율·Cohen's κ 보고. 이번 Claude 재라벨은 이 터미널 도구를 쓰지 않고 한 번에 기록했습니다(아래 '재라벨은 블라인드로 했습니다')
 - 제로샷·퓨샷 기준선(클래스당 1개 예시)
 - PEFT LoRA + TRL `SFTTrainer` 학습(라벨 이름에만 손실), 어댑터 병합
 - llm-compressor AWQ W4A16 양자화(보정 데이터는 train 분할에서만)
@@ -73,7 +73,7 @@
 
 ```mermaid
 flowchart LR
-    D["원 라벨링 파일<br/>127,307행 · GPT-4o 라벨"] --> K["누수 진단<br/>원 test 70.4%가 train과 같은 문장"]
+    D["원 라벨링 파일<br/>127,307행 · GPT-4o 라벨"] --> K["누수 진단<br/>원 분할 test 행 70.4%가 train과 같은 문장"]
     K --> S["문장 단위 7:1:2 분할<br/>seed 42 · train과 겹침 0"]
     S -- train --> L["LoRA 학습<br/>PEFT + TRL"]
     S -- train --> E["KoELECTRA + Dual KR-BERT<br/>원 프로젝트 코드"]
@@ -123,14 +123,42 @@ make lint
 ```bash
 make leakage          # reports/leakage.{md,json}
 make split-sentence   # data/splits_sentence/*.jsonl, reports/split_manifest_sentence.json
-make split && make verify-split   # 원 행 단위 분할 재현과 원 저장소 대조
+make split && make verify-split   # 같은 절차·시드로 나눈 행 단위 분할, 같은 파일에서 원 저장소 분할 함수와 대조
 ```
 
-GPU 단계는 `scripts/colab_t4.sh`로 단계별로 돌립니다(Colab VM과 Kaggle 커널에서 같은 스크립트, GPU 두 장이면 `PORT`로 vLLM 포트를 나눕니다).
+원 보고서의 분할 크기(89,118 / 12,732 / 25,463)는 전처리 후 127,313행 기준이고 지금 파일은 127,307행입니다. 그래서 `make verify-split`은 크기 차이를 경고로 알리고(`STRICT=1`이면 실패), 같은 파일에 두 분할 함수를 돌린 row_id 순서가 같은지만 통과 조건으로 봅니다.
+
+원 인코더는 원 코드와 같은 transformers 4.x 환경(`.venv-orig`: transformers 4.57.6, tokenizers 0.22.2, 이 저장소를 `--no-deps -e .`로 설치)에서 원 하이퍼파라미터(7 epoch, 배치 64) 그대로 돌립니다. 결과 표의 인코더 행은 아래 명령으로 만들었습니다. 원 저장소가 기본 위치에 없으면 `--original-repo`를 줍니다.
+
+```bash
+# 문장 단위 분할: Dual KR-BERT는 Apple M4 MPS에서 원 코드의 --fp16(bf16 autocast), KoELECTRA와 앙상블은 Kaggle T4에서 fp32
+python -m jeju_lora.run_original --split sentence --amp --steps dual --out runs/original_sentence
+python -m jeju_lora.run_original --split sentence --steps koelectra ensemble --out runs/original_sentence
+# 원 행 단위 분할(누수 있음): Kaggle T4, fp32
+python -m jeju_lora.run_original --split row --out runs/original_row
+
+# test 확률(npz)을 row_id에 붙여 채점. α는 runs/*/step7_ensemble_report.txt에 원 코드가 고른 값
+python -m jeju_lora.encoder_eval --test data/splits_sentence/test.jsonl \
+  --dual-npz runs/original_sentence/step3_dual_probs.npz \
+  --single-npz runs/original_sentence/branch1_koelectra_probs.npz --alpha 0.5 \
+  --gold reviews/relabel_claude/gold.jsonl
+python -m jeju_lora.encoder_eval --test data/splits_sentence/test.jsonl \
+  --dual-npz runs/original_sentence/step3_dual_probs.npz \
+  --gold reviews/relabel_claude/gold.jsonl --tag encoder_dual_sentence
+python -m jeju_lora.encoder_eval --test data/splits_sentence/test.jsonl \
+  --dual-npz runs/original_sentence/branch1_koelectra_probs.npz \
+  --gold reviews/relabel_claude/gold.jsonl --tag encoder_koelectra_sentence
+python -m jeju_lora.encoder_eval --test data/splits/test.jsonl \
+  --dual-npz runs/original_row/step3_dual_probs.npz \
+  --single-npz runs/original_row/branch1_koelectra_probs.npz --alpha 0.55 --tag encoder_ensemble_row
+```
+
+앙상블 두 줄은 `make original SPLIT=sentence|row`(MPS에서는 `AMP=1`)와 `make encoder-eval SPLIT=sentence|row ALPHA=… GOLD=…`로도 돌릴 수 있습니다. 위 채점 네 줄을 저장해 둔 npz로 다시 돌려 [reports/metrics/](reports/metrics/)의 인코더 값(macro-F1·정확도·재라벨 F1)과 같게 나오는 것을 2026-10-28에 확인했습니다.
+
+GPU 단계는 `scripts/colab_t4.sh`로 단계별로 돌립니다(Colab VM과 Kaggle 커널에서 같은 스크립트, GPU 두 장이면 `PORT`로 vLLM 포트를 나눕니다). 서빙·양자화 venv 위치는 `SERVE_VENV`·`QUANT_VENV`로 바꿉니다. Colab은 기본값(`/content/venv-serve`, `/content/venv-quant`)을, Kaggle은 `PY=<기본 파이썬> SERVE_VENV=/tmp/vs QUANT_VENV=/tmp/vq`를 썼습니다([docs/kaggle_t4.md](docs/kaggle_t4.md)).
 
 | 단계 | 명령 |
 |---|---|
-| 원 인코더 재학습 | `python -m jeju_lora.run_original --split sentence --steps dual koelectra ensemble --out runs/original_sentence` |
 | 재라벨 평가셋 | `make review-sample` → `make review-label REVIEWER=…` → `make review-report` |
 | 제로샷·퓨샷 | `bash scripts/colab_t4.sh baseline MODEL` |
 | LoRA 학습·병합 | `bash scripts/colab_t4.sh train MODEL` → `merge MODEL` |
@@ -144,8 +172,8 @@ GPU 단계는 `scripts/colab_t4.sh`로 단계별로 돌립니다(Colab VM과 Kag
 
 | 항목 | 수치 | 출처 |
 |---|---:|---|
-| 라벨링 데이터 (전처리 후) | 127,307행, 고유 제주어 문장 53,662개 | [reports/leakage.md](reports/leakage.md) |
-| 원 행 단위 분할 test 중 train에 같은 문장 | 17,914 / 25,462행 (70.4%) | [reports/leakage.md](reports/leakage.md) |
+| 라벨링 데이터 (전처리 후) | 127,307행, 고유 제주어 문장 53,662개 (원 보고서의 분할 크기는 127,313행 기준) | [reports/leakage.md](reports/leakage.md) |
+| 원 행 단위 분할 test 중 train에 같은 문장 | 17,914 / 25,462행 (70.4%), 고유 문장 11,685 / 18,557 (63.0%) | [reports/leakage.md](reports/leakage.md) |
 | 같은 분할에서 원 앙상블 정확도 (train에 있는 문장 / 없는 문장) | 0.970 / 0.561 | [reports/diagnostics/row_split_seen_unseen.md](reports/diagnostics/row_split_seen_unseen.md) |
 | 문장 단위 train / val / test | 84,307 / 5,248 / 10,496 | [reports/split_manifest_sentence.json](reports/split_manifest_sentence.json) |
 | 독립 재라벨 | 277건 (Claude, 블라인드) | [reviews/relabel_claude/](reviews/relabel_claude/) |
@@ -158,7 +186,7 @@ GPU 단계는 `scripts/colab_t4.sh`로 단계별로 돌립니다(Colab VM과 Kag
 ```text
 jeju-emotion-lora/
 ├── src/jeju_lora/
-│   ├── data.py, verify_split.py   원 분할 재현과 원 프로젝트 대조
+│   ├── data.py, verify_split.py   원과 같은 절차의 행 단위 분할, 원 분할 함수와 대조
 │   ├── leakage.py, sentence_split.py  누수 진단, 문장 단위 분할
 │   ├── run_original.py            원 인코더 코드를 문장 단위 분할로 실행
 │   ├── prompts.py, labels.py      프롬프트, 생성문 → 라벨 파싱, 감정 번호·이름
@@ -185,7 +213,7 @@ jeju-emotion-lora/
 - **같은 test 문항인지 확인할 수 있게 했습니다.** 원 코드는 행 ID를 남기지 않아서, 전처리 직후 행 번호를 `row_id`로 붙였습니다. 원 저장소의 `stratified_split_712`를 AST로 꺼내 같은 데이터에 돌려 row_id 순서까지 비교합니다. 분할 결과는 문장 원문 없이 row_id 해시로 기록합니다.
 - **QLoRA 대신 LoRA를 썼습니다.** 4bit로 학습하면 병합 대상 가중치가 원본과 달라져 "양자화 전후" 비교에 학습 단계의 양자화가 섞입니다. T4에서는 기반 가중치 fp16 + AMP fp16으로 학습했습니다.
 - **출력을 라벨 7개로 묶었습니다.** vLLM structured outputs의 `choice`로 생성 자체를 라벨 이름으로 제한해, 모델 간 차이가 출력 형식 실수가 아니라 분류에서 나오게 했습니다. 제약 없이 돌리는 옵션(`--no-constrained`)과 파싱 실패율 지표도 남겼습니다.
-- **재라벨은 블라인드로 했습니다.** GPT-4o 라벨을 보고 고르면 그 라벨에 끌려갑니다. 판정마다 검수자·시각·결정을 한 줄씩 기록하고, 재라벨이 GPU 실행보다 늦게 끝나도 저장된 예측으로 다시 채점합니다(`make rescore`).
+- **재라벨은 블라인드로 했습니다.** GPT-4o 라벨을 보고 고르면 그 라벨에 끌려갑니다. 이번 재라벨은 터미널 도구로 한 건씩 판정하지 않았습니다. 표본에서 GPT-4o 라벨 열을 뺀 문항 파일(row_id·제주어·표준어만, 저장소 제외)을 만들어 Claude가 그 파일로 280건을 붙였고, 결과를 `decisions.jsonl`에 한 번에 기록했습니다. 그래서 280건의 시각이 모두 같고(2026-10-15 10:02:30 +09:00) `machine_label_shown`은 모두 false입니다. 재라벨이 GPU 실행보다 늦게 끝나도 저장된 예측으로 다시 채점합니다(`make rescore`).
 - **양자화 실패와 평가값을 나눠 확인했습니다.** Qwen3-4B의 AWQ가 fp16 보정에서 멈췄을 때, 같은 fp16으로 잰 평가값도 넘침의 영향을 받았을 수 있었습니다. 병합본을 fp16과 fp32로 같은 test 512건에 돌려 층별 출력 크기와 라벨을 비교해 추론에는 넘침이 없다는 것을 확인했습니다. 실패는 보정 라이브러리가 제곱 오차 합을 fp16으로 계산하는 데서 나는 것으로 보여(라이브러리 코드와 실패 로그 기준), 보정만 fp32로 바꿨습니다.
 - **처리량을 잴 때 정밀도를 확인했습니다.** 처음 잰 인코더 처리량(103.9건/s)의 기록을 보니 정밀도가 T4에 없는 bf16이었습니다. `torch.cuda.is_bf16_supported()`가 T4에서도 에뮬레이션으로 True를 돌려준 탓이라, compute capability로 고르게 고치고 fp16으로 다시 재 717.4건/s를 얻었습니다. 첫 값을 썼다면 앙상블이 LLM과 비슷한 속도로 보였을 것입니다.
 - **비용은 공식만 고정했습니다.** `$/100만 건 = GPU $/h ÷ (건/s × 3600) × 10⁶`. 시간당 요금은 실행할 때 입력으로 받습니다.
@@ -199,7 +227,7 @@ jeju-emotion-lora/
 - 원 코드는 앙상블 가중치 α를 test 분할에서 고릅니다. 앙상블 값은 그만큼 낙관적이고, 이 저장소는 그 방식을 그대로 둡니다.
 - 원 코드의 보고서 txt(`step*_report.txt`)는 감정 1·2의 이름이 뒤바뀐 채로 찍힙니다. 번호와 지표는 맞고, 감정별 표를 읽을 때 이름만 바꿔 읽어야 합니다.
 - 인코더 처리량은 배치 순전파로, LLM은 HTTP 서버 경유로 잽니다. 인코더 쪽에는 서버 오버헤드가 빠져 있습니다. kanana·Midm 부하 측정은 같은 VM의 다른 GPU에서 학습이 돌던 시간에 했고(CPU 4개 공유), Qwen3-4B와 인코더는 다른 작업 없이 쟀습니다.
-- 처리량은 한 번씩만 쟀습니다. 반복 측정의 편차는 없습니다.
+- 처리량은 한 번씩만 쟀습니다. 반복 측정 편차는 재지 않았습니다.
 - LoRA는 모델마다 한 번(seed 42)만 학습했습니다. 부트스트랩 구간은 test 문항 표본의 흔들림만 반영하고, 학습 시드에 따른 편차는 들어 있지 않습니다.
 - 계획에 있던 LoRA 랭크 비교(8/16/32)와 학습 데이터 비율 곡선(10/30/100%)은 이번 범위에서 뺐습니다.
 

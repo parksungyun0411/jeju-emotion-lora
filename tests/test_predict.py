@@ -132,6 +132,6 @@ def test_rescore_refuses_missing_gold(tmp_path, monkeypatch):
 def test_default_eval_is_sentence_split():
     from jeju_lora.predict import DEFAULT_TEST, DEFAULT_TRAIN, split_name
 
-    # 원 행 단위 분할은 test 문장의 70.4%가 train에 있어(reports/leakage.md) 기본값이 아니다
+    # 원 행 단위 분할은 test 행의 70.4%가 train에 있어(reports/leakage.md) 기본값이 아니다
     assert split_name(DEFAULT_TEST) == split_name(DEFAULT_TRAIN) == "splits_sentence"
     assert split_name("data/splits/test.jsonl") == "splits"

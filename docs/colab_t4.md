@@ -64,7 +64,7 @@ colab stop -s jeju-t4
 |---|---|---|
 | bf16 학습·병합·서빙 | fp16 | T4(cc 7.5)에 bf16이 없다. 학습은 기반 가중치 fp16 + AMP fp16(어댑터는 PEFT가 fp32로 둔다), 병합 `--dtype float16`, vLLM `--dtype float16`(로그: `Casting torch.bfloat16 to torch.float16`) |
 | 학습 데이터 100%(train 84,307행) 1 epoch | 50,000행(seed 42 무작위) 1 epoch | kanana 전체 1 epoch가 2,635스텝 × 3.92~4.39 s/스텝, 20스텝 시점 tqdm 예상 2:50:47. 2.5h 상한을 넘어 줄였다. 세 모델 모두 같은 50,000행 |
-| 원 행 단위 분할 | 문장 단위 분할(test 10,496건) | 원 분할은 test의 70.4%가 train과 같은 문장이다([reports/leakage.md](../reports/leakage.md)) |
+| 원 행 단위 분할 | 문장 단위 분할(test 10,496건) | 원 분할은 test 행의 70.4%가 train과 같은 문장이다([reports/leakage.md](../reports/leakage.md)) |
 | Midm 공식 채팅 템플릿 | 기본 시스템 문구를 빼고 assistant 차례를 eos로 닫은 템플릿([configs/chat_templates/midm-2.0-mini.jinja](../configs/chat_templates/midm-2.0-mini.jinja)) | 아래 '문제와 대응' 3·4. LoRA 학습·병합본·AWQ 보정에만 쓴다. 제로샷·퓨샷은 공식 템플릿 그대로다 |
 | requirements/train.txt 고정 버전 | Colab 기본 torch 2.11.0+cu130·transformers 5.18.0·peft 0.21.1 + trl 1.14.1 | 설치 시간을 줄이려고. 양자화만 llmcompressor 0.14.0이 끌어온 torch 2.14.0·transformers 5.17.0 |
 | 인코더 처리량 bf16 | fp16 | `bench_encoder`가 GPU의 compute capability로 고른다. 처음에는 `is_bf16_supported()`로 골라 T4에서 bf16 에뮬레이션이 됐다(52f7615에서 고침, [kaggle_t4.md](kaggle_t4.md) 문제 3) |
