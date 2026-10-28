@@ -114,7 +114,8 @@ def render_markdown(report: dict) -> str:
         "## 원 분할(행 단위 7:1:2, seed 42)의 train·test 겹침",
         "",
         "원 저장소 재현 코드의 절차·시드(seed 42)로 이 파일을 다시 나눈 분할이다. "
-        "발표 때의 시드는 남아 있지 않다. 원 보고서의 분할 크기("
+        "발표 때의 시드는 남아 있지 않다. 원 보고서(원 저장소 docs/bert_improvement_report.md의 "
+        "9e62b46 이전 판)의 분할 크기("
         + " / ".join(f"{v:,}" for v in ORIGINAL_SIZES.values())
         + f")는 전처리 후 {sum(ORIGINAL_SIZES.values()):,}행 기준이고 "
         f"이 파일은 {d['rows']:,}행이라, 원 실험의 분할과는 행 수부터 다르다.",

@@ -8,7 +8,7 @@
 
 다시 검증하면서 두 가지를 찾았습니다.
 
-- **test 행의 70.4%가 train에도 있는 문장이었습니다.** 원 라벨링 파일은 감정별 행 수를 맞추려고 같은 문장을 한 감정 안에서 최대 52번 복제했고, 원 코드는 행 단위로 나눴습니다. 원 저장소 재현 코드의 절차·시드(seed 42)로 다시 나눈 행 단위 분할에서 test 25,462행 가운데 17,914행은 같은 제주어 문장이 train에 있습니다. 고유 문장으로 세면 test 18,557문장 중 63.0%입니다([reports/leakage.md](reports/leakage.md)). 발표 때의 시드는 남아 있지 않고(원 저장소 README), 원 보고서의 분할 크기는 전처리 후 127,313행 기준인데 지금 파일은 127,307행이라, 원 실험의 분할 그 자체가 아니라 같은 절차로 다시 나눈 분할입니다. 이 분할로 원 코드를 다시 돌리면 앙상블 macro-F1이 0.8393으로 원 README의 0.84와 맞습니다. 하지만 train에 같은 문장이 있는 test 행의 정확도는 0.970, 없는 행은 0.561입니다([reports/diagnostics/row_split_seen_unseen.md](reports/diagnostics/row_split_seen_unseen.md)). 이 저장소는 고유 문장 기준으로 다시 나눈 **문장 단위 분할**(test 10,496문장, train과 겹침 0)로 평가합니다.
+- **test 행의 70.4%가 train에도 있는 문장이었습니다.** 원 라벨링 파일은 감정별 행 수를 맞추려고 같은 문장을 한 감정 안에서 최대 52번 복제했고, 원 코드는 행 단위로 나눴습니다. 원 저장소 재현 코드의 절차·시드(seed 42)로 다시 나눈 행 단위 분할에서 test 25,462행 가운데 17,914행은 같은 제주어 문장이 train에 있습니다. 고유 문장으로 세면 test 18,557문장 중 63.0%입니다([reports/leakage.md](reports/leakage.md)). 발표 때의 시드는 남아 있지 않고(원 저장소 README), 원 보고서(원 저장소 `docs/bert_improvement_report.md`의 2026-10-28 9e62b46 이전 판. 지금 판에는 크기 줄이 없습니다)의 분할 크기는 전처리 후 127,313행 기준인데 지금 파일은 127,307행이라, 원 실험의 분할 그 자체가 아니라 같은 절차로 다시 나눈 분할입니다. 이 분할로 원 코드를 다시 돌리면 앙상블 macro-F1이 0.8393으로 원 README의 0.84와 맞습니다. 하지만 train에 같은 문장이 있는 test 행의 정확도는 0.970, 없는 행은 0.561입니다([reports/diagnostics/row_split_seen_unseen.md](reports/diagnostics/row_split_seen_unseen.md)). 이 저장소는 고유 문장 기준으로 다시 나눈 **문장 단위 분할**(test 10,496문장, train과 겹침 0)로 평가합니다.
 - **감정 번호 1·2의 이름이 뒤바뀌어 있었습니다.** 원 코드의 보고서(원 저장소가 2026-10-28 04f61bd에서 고치기 전 판)와 이 저장소의 첫 구현은 1=슬픔, 2=행복으로 적었습니다. 원 파일의 감정 번호와 GPT-4o 감정 이름 열을 교차표로 대조하면 1=행복, 2=슬픔입니다(`tests/test_labels.py`). 인코더 지표는 번호로 계산해 영향이 없지만, 감정 이름을 프롬프트에 넣는 LLM은 영향을 받습니다. 그래서 정정 전 LLM 실행 결과는 [reports/metrics/_invalid_swapped_names/](reports/metrics/_invalid_swapped_names/)로 옮기고 쓰지 않습니다.
 
 ## 결과 (문장 단위 분할 test 10,496건)
@@ -128,7 +128,7 @@ make split-sentence   # data/splits_sentence/*.jsonl, reports/split_manifest_sen
 make split && make verify-split   # 재현 코드의 절차·시드로 나눈 행 단위 분할, 같은 파일에서 원 저장소 분할 함수와 대조
 ```
 
-원 보고서의 분할 크기(89,118 / 12,732 / 25,463)는 전처리 후 127,313행 기준이고 지금 파일은 127,307행입니다. 그래서 `make verify-split`은 크기 차이를 경고로 알리고(`STRICT=1`이면 실패), 같은 파일에 두 분할 함수를 돌린 row_id 순서가 같은지만 통과 조건으로 봅니다.
+원 보고서(원 저장소 `docs/bert_improvement_report.md`의 9e62b46 이전 판 15행)의 분할 크기(89,118 / 12,732 / 25,463)는 전처리 후 127,313행 기준이고 지금 파일은 127,307행입니다. 그래서 `make verify-split`은 크기 차이를 경고로 알리고(`STRICT=1`이면 실패), 같은 파일에 두 분할 함수를 돌린 row_id 순서가 같은지만 통과 조건으로 봅니다.
 
 원 인코더는 원 코드와 같은 transformers 4.x 환경(`.venv-orig`: transformers 4.57.6, tokenizers 0.22.2, 이 저장소를 `--no-deps -e .`로 설치)에서 원 하이퍼파라미터(7 epoch, 배치 64) 그대로 돌립니다. 결과 표의 인코더 행은 아래 명령으로 만들었습니다. 원 저장소가 기본 위치에 없으면 `--original-repo`를 줍니다.
 
