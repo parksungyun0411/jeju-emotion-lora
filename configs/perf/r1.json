@@ -1,0 +1,250 @@
+{
+ "slug": "jeju-perf-r1",
+ "hours": 4.0,
+ "pip": [
+  "transformers==5.18.0",
+  "peft==0.21.1",
+  "accelerate==1.15.0",
+  "bitsandbytes==0.50.2"
+ ],
+ "gpus": [
+  [
+   {
+    "name": "r1_k2_pair",
+    "est_min": 80,
+    "args": [
+     "--model",
+     "kakaocorp/kanana-1.5-2.1b-instruct-2505",
+     "--revision",
+     "7df4bc35ccd610e451809d7106e1c3cf82bfd44c",
+     "--arch",
+     "llm",
+     "--input",
+     "pair",
+     "--batch",
+     "32",
+     "--lr",
+     "1e-4",
+     "--warmup",
+     "0.05",
+     "--max-len",
+     "192",
+     "--epochs",
+     "2",
+     "--evals-per-epoch",
+     "2"
+    ]
+   },
+   {
+    "name": "r1_rl_pair",
+    "est_min": 35,
+    "args": [
+     "--model",
+     "klue/roberta-large",
+     "--revision",
+     "28d911204e9022eda172571ca8cc61eaffd942f7",
+     "--input",
+     "pair",
+     "--epochs",
+     "4",
+     "--batch",
+     "32",
+     "--lr",
+     "1.5e-5",
+     "--warmup",
+     "0.1"
+    ]
+   },
+   {
+    "name": "r1_rl_std",
+    "est_min": 30,
+    "args": [
+     "--model",
+     "klue/roberta-large",
+     "--revision",
+     "28d911204e9022eda172571ca8cc61eaffd942f7",
+     "--input",
+     "std",
+     "--epochs",
+     "4",
+     "--batch",
+     "32",
+     "--lr",
+     "1.5e-5",
+     "--warmup",
+     "0.1"
+    ]
+   },
+   {
+    "name": "r1_rl_jeju",
+    "est_min": 30,
+    "args": [
+     "--model",
+     "klue/roberta-large",
+     "--revision",
+     "28d911204e9022eda172571ca8cc61eaffd942f7",
+     "--input",
+     "jeju",
+     "--epochs",
+     "4",
+     "--batch",
+     "32",
+     "--lr",
+     "1.5e-5",
+     "--warmup",
+     "0.1"
+    ]
+   },
+   {
+    "name": "r1_kc_pair",
+    "est_min": 12,
+    "args": [
+     "--model",
+     "beomi/KcELECTRA-base-v2022",
+     "--revision",
+     "87285578b4686b6d190abd40e947a2a416add6de",
+     "--input",
+     "pair",
+     "--epochs",
+     "5",
+     "--batch",
+     "32",
+     "--lr",
+     "3e-5",
+     "--warmup",
+     "0.1"
+    ]
+   },
+   {
+    "name": "r1_ko_dual",
+    "est_min": 15,
+    "args": [
+     "--model",
+     "monologg/koelectra-base-v3-discriminator",
+     "--revision",
+     "68b30cd259f34a4b5aa8786392612ba2a2617fcc",
+     "--arch",
+     "dual",
+     "--epochs",
+     "5",
+     "--batch",
+     "32",
+     "--lr",
+     "3e-5",
+     "--warmup",
+     "0.1"
+    ]
+   },
+   {
+    "name": "r1_deb_pair",
+    "est_min": 12,
+    "args": [
+     "--model",
+     "team-lucid/deberta-v3-base-korean",
+     "--revision",
+     "47a3b00828c5dc2b8b080c6738ef7a58ebd419d5",
+     "--input",
+     "pair",
+     "--epochs",
+     "5",
+     "--batch",
+     "32",
+     "--lr",
+     "3e-5",
+     "--warmup",
+     "0.1"
+    ]
+   }
+  ],
+  [
+   {
+    "name": "r1_k8_pair",
+    "est_min": 150,
+    "args": [
+     "--model",
+     "kakaocorp/kanana-1.5-8b-instruct-2505",
+     "--revision",
+     "c963a5f4f6496c749f94064a20b33028b0db9f19",
+     "--arch",
+     "llm",
+     "--input",
+     "pair",
+     "--batch",
+     "32",
+     "--lr",
+     "1e-4",
+     "--warmup",
+     "0.05",
+     "--max-len",
+     "192",
+     "--qlora",
+     "--grad-ckpt",
+     "--epochs",
+     "1",
+     "--evals-per-epoch",
+     "3",
+     "--eval-batch",
+     "32"
+    ]
+   },
+   {
+    "name": "r1_xlmr_pair",
+    "est_min": 35,
+    "args": [
+     "--model",
+     "FacebookAI/xlm-roberta-large",
+     "--revision",
+     "c23d21b0620b635a76227c604d44e43a9f0ee389",
+     "--input",
+     "pair",
+     "--epochs",
+     "4",
+     "--batch",
+     "32",
+     "--lr",
+     "1e-5"
+    ]
+   },
+   {
+    "name": "r1_ko_pair",
+    "est_min": 12,
+    "args": [
+     "--model",
+     "monologg/koelectra-base-v3-discriminator",
+     "--revision",
+     "68b30cd259f34a4b5aa8786392612ba2a2617fcc",
+     "--input",
+     "pair",
+     "--epochs",
+     "5",
+     "--batch",
+     "32",
+     "--lr",
+     "3e-5",
+     "--warmup",
+     "0.1"
+    ]
+   },
+   {
+    "name": "r1_mdeb_pair",
+    "est_min": 12,
+    "args": [
+     "--model",
+     "microsoft/mdeberta-v3-base",
+     "--revision",
+     "a0484667b22365f84929a935b5e50a51f71f159d",
+     "--input",
+     "pair",
+     "--epochs",
+     "5",
+     "--batch",
+     "32",
+     "--lr",
+     "3e-5",
+     "--warmup",
+     "0.1"
+    ]
+   }
+  ]
+ ]
+}

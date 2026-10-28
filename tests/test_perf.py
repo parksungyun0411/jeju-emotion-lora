@@ -120,3 +120,22 @@ def test_greedy_ensemble_weights_sum_to_one():
     _, b = _noisy_logits(seed=2)
     w, bias = ensemble.greedy_ensemble([a, b], y)
     assert w.sum() == pytest.approx(1.0) and bias.shape == (7,)
+
+
+def test_apply_recipe_combines_members_without_labels(tmp_path):
+    from jeju_lora.perf.final import apply_recipe
+
+    rng = np.random.default_rng(0)
+    for name in ("a", "b"):
+        d = tmp_path / name
+        d.mkdir()
+        np.savez(d / "logits.npz", test_logits=rng.normal(size=(2, 9, 7)), test_row_id=np.arange(9))
+    recipe = {
+        "members": [
+            {"dir": str(tmp_path / "a"), "eval_index": 1, "weight": 0.5},
+            {"dir": str(tmp_path / "b"), "eval_index": 0, "weight": 0.5},
+        ],
+        "bias": [0.0] * 6 + [100.0],
+    }
+    ids, pred = apply_recipe(recipe)
+    assert ids.tolist() == list(range(9)) and set(pred.tolist()) == {6}

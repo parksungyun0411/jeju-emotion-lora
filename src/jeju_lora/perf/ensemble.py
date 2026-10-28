@@ -124,6 +124,7 @@ def load_run(path: str | Path) -> dict | None:
     meta = json.loads((path / "metrics.json").read_text())
     return {
         "name": meta["name"],
+        "dir": str(path),
         "meta": meta,
         "val_logits": z["val_logits"],
         "val_label": z["val_label"],
@@ -173,6 +174,19 @@ def summarize(runs: list[dict]) -> dict:
             "val_f1_insample": round(macro_f1(y, pred), 4),
             "val_f1_oof": round(oof_ensemble_f1(members, y), 4),
             "val_f1_per_class": per_class_f1(y, pred),
+            # final.py가 test에 그대로 적용할 처방 (val에서만 정한 값)
+            "recipe": {
+                "members": [
+                    {
+                        "dir": r["dir"],
+                        "eval_index": int(r["meta"]["best_index"]),
+                        "weight": round(float(wi), 6),
+                    }
+                    for r, wi in zip(runs, w, strict=True)
+                    if wi > 0
+                ],
+                "bias": [float(v) for v in b],
+            },
         }
     return out
 

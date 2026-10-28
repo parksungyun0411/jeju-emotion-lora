@@ -182,7 +182,9 @@ def build_dual(args):
     class DualGated(nn.Module):
         def __init__(self):
             super().__init__()
-            self.encoder = AutoModel.from_pretrained(args.model, revision=args.revision)
+            self.encoder = AutoModel.from_pretrained(
+                args.model, revision=args.revision, dtype=torch.float32
+            )
             hidden = self.encoder.config.hidden_size
             self.gate = nn.Linear(hidden * 2, hidden)
             self.dropout = nn.Dropout(args.dropout)
@@ -205,9 +207,6 @@ def build_llm(args, tok):
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
     from transformers import AutoModelForSequenceClassification
 
-    from jeju_lora import compat
-
-    compat.apply()
     kw = {"num_labels": NUM_LABELS, "dtype": torch.float16 if args.fp16 else torch.float32}
     if args.qlora:
         from transformers import BitsAndBytesConfig
@@ -248,10 +247,25 @@ def build_llm(args, tok):
     return model
 
 
-def build_model(args):
-    from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
+def load_tokenizer(args):
+    from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
-    tok = AutoTokenizer.from_pretrained(args.model, revision=args.revision)
+    try:
+        return AutoTokenizer.from_pretrained(args.model, revision=args.revision)
+    except TypeError:
+        # team-lucid DeBERTa-v3-ko: tokenizer.json은 WordPiece인데 transformers 5의
+        # DebertaV2Tokenizer가 Unigram으로 다시 만들려다 실패한다 → tokenizer.json을 그대로 쓴다
+        return PreTrainedTokenizerFast.from_pretrained(args.model, revision=args.revision)
+
+
+def build_model(args):
+    import torch
+    from transformers import AutoConfig, AutoModelForSequenceClassification
+
+    from jeju_lora import compat
+
+    compat.apply()  # kanana-1.5-2.1b 설정 검증 우회: 토크나이저를 부르기 전에 건다
+    tok = load_tokenizer(args)
     use_tti = False
     if args.arch == "llm":
         if tok.pad_token is None:
@@ -264,8 +278,9 @@ def build_model(args):
         cfg = AutoConfig.from_pretrained(args.model, revision=args.revision, num_labels=NUM_LABELS)
         # KLUE RoBERTa·XLM-R는 type_vocab_size 1, DeBERTa-v3는 0: 둘째 문장 구분 id를 넣지 않는다
         use_tti = getattr(cfg, "type_vocab_size", 0) >= 2
+        # transformers 5는 체크포인트 dtype(mDeBERTa는 fp16)으로 올린다 → fp32로 받아 학습
         model = AutoModelForSequenceClassification.from_pretrained(
-            args.model, revision=args.revision, config=cfg
+            args.model, revision=args.revision, config=cfg, dtype=torch.float32
         )
     return tok, model, use_tti
 
@@ -458,6 +473,8 @@ def train(args) -> dict:
     last_loss = np.zeros(len(tr_items))
 
     history, val_logits, test_logits = [], [], []
+    print(f"[{args.name}] loaded in {(time.time() - t0) / 60:.1f}m", flush=True)
+    t_train, eval_sec = time.time(), 0.0
     step, epoch, stop = 0, 0, False
     model.train()
     while step < total_steps and not stop:
@@ -487,7 +504,7 @@ def train(args) -> dict:
             last_loss[batch["idx"].cpu().numpy()] = loss_vec.detach().float().cpu().numpy()
             loss = loss_vec.mean() / args.grad_accum
             scaler.scale(loss).backward()
-            run_loss += float(loss_vec.mean())
+            run_loss += float(loss_vec.detach().mean())
             run_n += 1
             if (bi + 1) % args.grad_accum and bi + 1 != len(loader):
                 continue
@@ -500,19 +517,21 @@ def train(args) -> dict:
             if ema is not None:
                 ema.update(model)
             step += 1
-            if step % 100 == 0:
-                el = time.time() - t0
+            if step % 100 == 0 or step == 20:
+                el = time.time() - t_train - eval_sec
                 print(
                     f"[{args.name}] step {step}/{total_steps} loss {run_loss / run_n:.4f} "
-                    f"elapsed {el / 60:.1f}m",
+                    f"{el / step:.2f}s/step elapsed {(time.time() - t0) / 60:.1f}m",
                     flush=True,
                 )
                 run_loss, run_n = 0.0, 0
             if step % eval_every == 0 or step == total_steps:
                 if ema is not None:
                     ema.swap(model)
+                t_eval = time.time()
                 vl = predict(model, va_loader, args, device)
                 tl = predict(model, te_loader, args, device)
+                eval_sec += time.time() - t_eval
                 pred = vl.argmax(-1)
                 f1 = macro_f1(y_val, pred)
                 if args.save_model and all(f1 > h["val_f1_macro"] for h in history):
@@ -528,6 +547,7 @@ def train(args) -> dict:
                     "val_acc": float((pred == y_val).mean()),
                     "val_f1_per_class": per_class_f1(y_val, pred),
                     "elapsed_min": round((time.time() - t0) / 60, 2),
+                    "eval_min_total": round(eval_sec / 60, 2),
                 }
                 history.append(h)
                 print(f"[{args.name}] EVAL {json.dumps(h, ensure_ascii=False)}", flush=True)
