@@ -30,7 +30,8 @@ _CANDIDATES = [
 DEFAULT_ORIGINAL_REPO = next((c for c in _CANDIDATES if c.exists()), _CANDIDATES[0])
 ORIGINAL_FILE = "src/jeju_kr_bert.py"
 # 원 저장소 docs/bert_improvement_report.md에 적힌 분할 크기(전처리 후 127,313행 기준).
-# 지금 라벨링 파일은 전처리 후 127,307행이라 크기가 다르다. 같은 절차·시드로 다시 나눈 분할이다.
+# 지금 라벨링 파일은 전처리 후 127,307행이라 크기가 다르다.
+# 재현 코드의 절차·시드로 다시 나눈 분할이다.
 ORIGINAL_SIZES = {"train": 89_118, "val": 12_732, "test": 25_463}
 
 

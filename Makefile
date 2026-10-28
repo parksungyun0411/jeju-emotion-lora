@@ -54,7 +54,7 @@ smoke: ## 작은 랜덤 모델로 학습→병합→생성 경로 확인 (CPU)
 	$(PY) -m pytest -q -m smoke
 
 # ── ① 데이터·기존 수치 재현 ─────────────────────────────
-split: ## 원 프로젝트와 같은 절차·시드의 행 단위 7:1:2 분할 → data/splits/*.jsonl, reports/split_manifest.json
+split: ## 원 저장소 재현 코드와 같은 절차·시드(seed 42)의 행 단위 7:1:2 분할 → data/splits/*.jsonl, reports/split_manifest.json
 	$(PY) -m jeju_lora.data --data $(DATA)
 
 verify-split: ## 같은 파일에 원 저장소의 분할 함수를 돌려 row_id 순서까지 대조 (원 보고서와 크기가 다르면 경고, STRICT=1이면 실패)

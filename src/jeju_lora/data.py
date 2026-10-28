@@ -1,4 +1,4 @@
-"""원 프로젝트와 같은 데이터·분할·시드.
+"""원 저장소 재현 코드와 같은 데이터·분할·시드(발표 때의 시드는 남아 있지 않다).
 
 원 프로젝트(jeju-emotion-analysis/src/jeju_kr_bert.py)의 처리 순서를 그대로 따른다.
   1. pd.read_excel(merged_jeju_balanced_sorted.xlsx)
@@ -118,7 +118,7 @@ def split_manifest(splits: Splits, source: str | Path) -> dict:
 def main() -> None:
     import argparse
 
-    p = argparse.ArgumentParser(description="원 프로젝트와 같은 7:1:2 분할을 jsonl로 저장")
+    p = argparse.ArgumentParser(description="원 저장소 재현 코드와 같은 7:1:2 분할을 jsonl로 저장")
     p.add_argument("--data", default=DEFAULT_XLSX)
     p.add_argument("--out-dir", default=SPLIT_DIR)
     p.add_argument("--manifest", default="reports/split_manifest.json")
