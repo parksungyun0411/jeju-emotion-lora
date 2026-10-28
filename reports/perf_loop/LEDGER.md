@@ -6,18 +6,30 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 최고 val 구성 | 아직 없음 (R0 점검 중) |
+| 현재 최고 val 구성 | 아직 없음 (R1 실행 중) |
 | 현재 최고 val macro-F1 | — |
-| 이번 주 누적 GPU 시간 | 이 루프 0.0 h (주 시작 2026-10-24 00:00 UTC, 루프 전 다른 작업 약 3.0 h 추정 → 남은 한도 약 27 h) |
-| 비공개 데이터셋 | `seongyunpark0411/jeju-perf-private` (루프가 끝나면 삭제. 아직 만들기 전) |
+| 이번 주 누적 GPU 시간 | 이 루프 0.2 h (+ R1 실행 중, 상한 4.0 h). 주 시작 2026-10-24 00:00 UTC. 공동 장부 배분(10-28): jeju-perf 몫 약 16 h에서 루프 전 다른 작업 약 3.0 h(kj-k4 2.2 h·minwon-k1 0.9 h)를 빼 보수적으로 약 13 h로 잡는다 |
+| 비공개 데이터셋 | `seongyunpark0411/jeju-perf-private` (2026-10-28 02:52 UTC 생성, 루프가 끝나면 `yes \| kaggle datasets delete` 로 삭제). data_perf.tgz sha256 d1e7c2a6…26e3: train.jsonl c1c70f47…, val.jsonl 2752cf8f…, test_nolabel.jsonl 9479ba68… (라벨 없음 확인) |
 | 브랜치·작업 트리 | `perf-loop` · `/Users/psyreo/Documents/GitHub/personal/jeju-emotion-lora-perf` (push 금지, 메인 세션이 검토) |
 | test 평가 | 0회 (루프 종료 때 1회만) |
 
+멈춤 기록 (2026-10-28 05:05 UTC, 소유자 지시로 중단): jeju-perf-r1은 03:13 UTC에 올렸고 05:05 UTC에 아직 실행 중(상한 4.0 h, 늦어도 07:25 UTC쯤 끝).
+R1 결과는 아직 받지 않았다. 다음 세션은 아래 '이어하기' 순서부터.
+
+이어하기
+1. `kaggle kernels status seongyunpark0411/jeju-perf-r1` → COMPLETE면
+   `kaggle kernels output seongyunpark0411/jeju-perf-r1 -p <작업폴더>/out/r1` (로컬 작업폴더: `_archive/jeju-perf-kaggle/`, 데이터 포함이라 git 밖)
+2. `out/r1/summary.json`의 벽시계(`wall_min`)를 이 장부 GPU 표와 공동 장부(`kaggle_gpu_ledger.md`)의 R1 줄에 채운다.
+3. `python -m jeju_lora.perf.ensemble <out/r1/out/*> --out reports/perf_loop/r1_val.json` (작업 트리에서 `PYTHONPATH=src`) → 실행별 val macro-F1·클래스별·편향 보정(5겹 oof)·앙상블을 R1 행에 적는다. test 로짓은 읽지 않는다.
+4. R1 결과로 아래 계획을 고쳐 R2 spec을 `configs/perf/make_spec.py`에 추가 → 커밋 → `python -m jeju_lora.perf.kernel build --spec configs/perf/r2.json --out-dir <작업폴더>/r2` → 공동 장부에 줄을 쓰고 push.
+   새 컴퓨터에서는 비공개 데이터셋 폴더(data_perf.tgz)를 다시 만들 필요가 없다(Kaggle에 이미 있음). 로컬 val 채점에는 `data/splits_sentence/val.jsonl`이 아니라 커널 출력 logits.npz의 val_label을 쓴다.
+
 다음 계획 3개
 
-1. R1 인코더 기준선(val): 입력(표준어 앞 문장쌍·제주어만·표준어만), train 중복 제거 여부, 모델(KLUE RoBERTa-large·XLM-R-large·KcELECTRA·KoELECTRA·DeBERTa-v3-ko·mDeBERTa)·Dual-Gated KoELECTRA를 한 커널에서 비교
-2. R2 LLM 분류 헤드 LoRA: kanana-1.5-2.1b(fp16 LoRA)·kanana-1.5-8b(QLoRA), 표준어+제주어 입력
-3. R3 val 앙상블·클래스 편향 보정(5겹 교차 추정 함께 기록), 이어서 DAPT·다중 시드
+1. (실행 중) R1: GPU0 kanana-1.5-2.1b LoRA 분류 헤드(pair, 2 epoch) → KLUE RoBERTa-large pair·std·jeju → KcELECTRA pair → Dual-Gated KoELECTRA → DeBERTa-v3-ko pair /
+   GPU1 kanana-1.5-8b QLoRA(pair, 1 epoch, epoch당 평가 3회) → XLM-R-large pair → KoELECTRA pair → mDeBERTa pair. 시간이 모자라면 뒤쪽은 SKIP으로 남는다
+2. R2(R1 결과로 확정): val 최고 계열을 키운다. LLM이 앞서면 kanana-8b 2 epoch 또는 다른 시드·Qwen3-8B·Midm 분류 헤드로 다양성 확보, 인코더 최고 구성의 다중 시드·R-Drop·LLRD·EMA
+3. R3: R1·R2 val 로짓 앙상블(전진 선택)과 클래스 편향 보정(5겹 oof로 낙관 정도 기록), 클래스별 오류 분석. DAPT는 JIT 라이선스(NC) 확인 전엔 train 문장만으로
 
 ## 원칙 (위반하면 전부 무효)
 
@@ -39,6 +51,11 @@
   `dedup`은 고유 문장만, `dup`은 원래 복제 행 그대로 학습한다. val·test는 문장당 1행이라 고유 문장 분포를 따른다.
   val 라벨 분포: 중립 1,631 · 행복 910 · 슬픔 1,304 · 분노 650 · 놀람 348 · 공포 187 · 혐오 218.
 
+## 비라벨 말뭉치
+
+- kakaobrain/jejueo(JIT): GitHub 코드는 Apache-2.0이지만 데이터(Kaggle `bryanpark/jit-dataset`)의 라이선스 메타데이터는 **CC-BY-NC-SA-4.0(비상업)**.
+  지시문은 Apache-2.0으로 적었으나 실제와 다르다 → 소유자 확인 전에는 쓰지 않는다(차단 사항). DAPT를 하면 train 문장(제주어·표준어)만 쓴다.
+
 ## 라이선스 확인 (2026-10-28, HF API·모델 카드)
 
 | 모델 | revision | 라이선스 | 비고 |
@@ -57,8 +74,11 @@
 
 | 커널 | 시작(UTC) | 벽시계 h | 이번 주 누적 h(루프) |
 |---|---|---:|---:|
+| jeju-perf-smoke | 2026-10-28 02:53 | 0.2 | 0.2 |
+| jeju-perf-r1 | 2026-10-28 03:13 | (05:05 UTC에 실행 중, 상한 4.0. 끝나면 summary.json wall_min으로 채움) | |
 
 ## 라운드
 
 | # | 날짜 | 가설 | 변경 | 커널 | GPU h | val macro-F1 (클래스별) | 유지/폐기 | 메모 |
 |---|---|---|---|---|---:|---|---|---|
+| R0 | 10-28 | 학습기·커널 경로가 T4에서 돈다 | 작은 표본(512~3,200행)으로 10개 경로 점검 | jeju-perf-smoke (ec76255) | 0.2 | 점검용(val 앞 256~512건) — 성능 비교에 쓰지 않음 | — | 실패 4: kanana-2.1b 설정 검증(토크나이저가 우회보다 먼저 불림)·mDeBERTa fp16 체크포인트(GradScaler)·DeBERTa-ko 토크나이저(transformers 5 Unigram 재구성) → 3ce6c37에서 고침. 참고: kanana-8b QLoRA는 train 960행만으로 val 앞 256건 0.42 |
