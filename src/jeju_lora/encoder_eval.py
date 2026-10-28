@@ -1,4 +1,4 @@
-"""원 프로젝트 앙상블의 test 예측(npz)을 이 저장소의 row_id에 붙여 다시 채점한다.
+"""원 저장소 재현 코드로 학습한 앙상블의 test 예측(npz)을 이 저장소의 row_id에 붙여 다시 채점한다.
 
 원 코드(jeju_kr_bert.py save_report)는 test 분할 순서대로 probs·labels를 npz에 저장한다.
 분할이 같으면 data/splits/test.jsonl과 순서가 같으므로 라벨 배열이 일치하는지로 확인한다.

@@ -3,7 +3,7 @@
 앙상블 1건 = KoELECTRA 1회(제주어) + KR-BERT 2회(제주어·표준어, 공유 인코더).
 각 인코더의 배치 순전파 처리량을 따로 잰 뒤 건당 시간을 더한다:
   items/s = 1 / Σ (passes_i / throughput_i)
-처리량은 가중치 값과 무관하므로 원 프로젝트 체크포인트가 없으면 공개 기반 가중치로 잰다.
+처리량은 가중치 값과 무관하므로 원 저장소 재현 코드의 체크포인트가 없으면 공개 기반 가중치로 잰다.
 LLM 쪽은 HTTP 서버 경유로 재므로 이 수치는 서버 오버헤드가 빠진 상한이다(README 한계 참고).
 
   python -m jeju_lora.bench_encoder --tag encoder_ensemble --gpu "RTX 4090"
@@ -82,7 +82,7 @@ def main() -> None:
     p.add_argument("--data", default=DEFAULT_TEST)
     p.add_argument("--n", type=int, default=5000)
     p.add_argument("--batch-size", type=int, default=128)
-    p.add_argument("--max-length", type=int, default=64, help="원 프로젝트 기본값")
+    p.add_argument("--max-length", type=int, default=64, help="원 저장소 재현 코드의 기본값")
     p.add_argument("--warmup", type=int, default=5)
     p.add_argument("--tag", default="encoder_ensemble")
     p.add_argument("--gpu", default="")

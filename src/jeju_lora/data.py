@@ -1,6 +1,6 @@
 """원 저장소 재현 코드와 같은 데이터·분할·시드(발표 때의 시드는 남아 있지 않다).
 
-원 프로젝트(jeju-emotion-analysis/src/jeju_kr_bert.py)의 처리 순서를 그대로 따른다.
+원 저장소 재현 코드(jeju-emotion-analysis/src/jeju_kr_bert.py)의 처리 순서를 그대로 따른다.
   1. pd.read_excel(merged_jeju_balanced_sorted.xlsx)
   2. dropna(['제주어 문장', '표준어 문장', '감정번호']).reset_index(drop=True)
   3. stratified_split_712(df, seed=42): test 20% → 남은 것의 1/8을 val
@@ -29,7 +29,7 @@ SPLIT_DIR = "data/splits"
 
 
 def stratified_split_712(df: pd.DataFrame, label_col: str = LABEL_COL, seed: int = SEED):
-    """원 프로젝트의 stratified_split_712와 같은 호출 순서·인자."""
+    """원 저장소 재현 코드의 stratified_split_712와 같은 호출 순서·인자."""
     train_val, test = train_test_split(df, test_size=0.2, random_state=seed, stratify=df[label_col])
     train, val = train_test_split(
         train_val, test_size=1 / 8, random_state=seed, stratify=train_val[label_col]

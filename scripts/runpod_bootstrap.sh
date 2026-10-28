@@ -23,7 +23,7 @@ uv venv --python 3.12 .venv-serve
 uv pip install --python .venv-serve -r requirements/serve.txt
 uv pip install --python .venv-serve --no-deps -e .
 
-# 원 프로젝트 재현용: 원 코드는 transformers 4.x 기준으로 작성됐다
+# 원 저장소 재현 코드용: 재현 코드(jeju_kr_bert.py)는 transformers 4.x 기준으로 작성됐다
 uv venv --python 3.12 .venv-orig
 uv pip install --python .venv-orig "torch==2.14.0" "transformers>=4.40,<5" scikit-learn pandas openpyxl numpy
 

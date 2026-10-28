@@ -19,7 +19,7 @@ def classification_metrics(y_true: Sequence[int], y_pred: Sequence[int]) -> dict
         raise ValueError("y_true와 y_pred 길이가 다르다")
     if len(y_true) == 0:
         raise ValueError("빈 입력")
-    # 평균 대상은 정답·예측에 나온 클래스(원 프로젝트의 sklearn 기본 동작과 같다).
+    # 평균 대상은 정답·예측에 나온 클래스(원 저장소 재현 코드가 쓰는 sklearn 기본 동작과 같다).
     # 단 -1(파싱 실패)은 클래스로 세지 않아 정답 클래스의 FN으로만 잡힌다.
     present = sorted((set(y_true.tolist()) | set(y_pred.tolist())) - {INVALID})
     per_class = f1_score(y_true, y_pred, labels=present, average=None, zero_division=0)
