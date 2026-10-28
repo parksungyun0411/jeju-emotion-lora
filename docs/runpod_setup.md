@@ -46,7 +46,8 @@
 # ── 로컬 ──
 make setup-dev
 make split                      # data/splits/*.jsonl, reports/split_manifest.json
-make verify-split               # 원 저장소 분할 함수와 row_id 순서까지 대조 + 원 보고서 크기(89,118/12,732/25,463) 확인
+make verify-split               # 원 저장소 분할 함수와 row_id 순서까지 대조. 원 보고서 크기(89,118/12,732/25,463)와 다르면 경고
+                                # (지금 파일은 127,307행이라 89,114/12,731/25,462로 경고가 난다. STRICT=1이면 실패)
 
 # ── GPU 세션 1 (약 1h) ──
 git clone <이 저장소> && cd jeju-emotion-lora
@@ -54,10 +55,11 @@ git clone https://github.com/parksungyun0411/jeju-emotion-analysis ../jeju-emoti
 scp data/raw/merged_jeju_balanced_sorted.xlsx <서버>:jeju-emotion-lora/data/raw/
 bash scripts/runpod_bootstrap.sh
 make split verify-split ORIG=../jeju-emotion-analysis
-make original ORIG=../jeju-emotion-analysis         # runs/original/*.npz, step7_ensemble 보고서
-make encoder-eval ALPHA=<step7_ensemble 보고서의 α>
+make original SPLIT=sentence ORIG=../jeju-emotion-analysis   # runs/original_sentence/*.npz, step7_ensemble 보고서
+make original SPLIT=row ORIG=../jeju-emotion-analysis        # runs/original_row/*.npz (누수 영향 확인용)
+make encoder-eval SPLIT=sentence ALPHA=<step7_ensemble 보고서의 α>
 make bench-encoder GPU_NAME="RTX 4090"
-# runs/original, outputs/predictions/encoder_ensemble.jsonl, reports/ 를 로컬로 내려받고 서버를 끈다
+# runs/original_*, outputs/predictions/encoder_ensemble.jsonl, reports/ 를 로컬로 내려받고 서버를 끈다
 
 # ── 로컬: 검수 (계획. 실제로는 Claude가 블라인드로 재라벨했다, reviews/README.md) ──
 make review-sample              # 감정별 40건 × 7 = 280건, 앙상블과 기계 라벨이 다른 문항을 절반까지
