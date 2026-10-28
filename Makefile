@@ -73,12 +73,13 @@ original: ## 원 인코더 코드를 원 하이퍼파라미터(7 epoch, 배치 6
 	$(ORIG_PY) -m jeju_lora.run_original --split $(SPLIT) --steps dual koelectra ensemble \
 	  --data $(DATA) --original-repo $(ORIG) --out $(ORIG_OUT) $(if $(AMP),--amp,)
 
-encoder-eval: ## 앙상블 test 예측을 row_id에 붙여 재채점 (SPLIT=sentence|row, ALPHA=원 실행에서 고른 값, GOLD=재라벨)
+encoder-eval: ## 앙상블 test 예측을 row_id에 붙여 재채점 (SPLIT=sentence|row, ALPHA=원 실행에서 고른 값, GOLD=재라벨, DEVICE·PRECISION=기록용 학습 장치·정밀도)
 	@test -n "$(ALPHA)" || { echo "ALPHA=값 필요 ($(ORIG_OUT)/step7_ensemble_report.txt 참고)"; exit 1; }
 	$(PY) -m jeju_lora.encoder_eval --test $(SPLIT_DIR_$(SPLIT))/test.jsonl \
 	  --dual-npz $(ORIG_OUT)/step3_dual_probs.npz \
 	  --single-npz $(ORIG_OUT)/branch1_koelectra_probs.npz --alpha $(ALPHA) \
-	  --gold $(GOLD) --tag $(ENC_TAG_$(SPLIT))
+	  --gold $(GOLD) --tag $(ENC_TAG_$(SPLIT)) \
+	  $(if $(DEVICE),--device "$(DEVICE)",) $(if $(PRECISION),--precision "$(PRECISION)",)
 
 # ── ② 검수 평가셋 (독립 재라벨) ──────────────────────────────────
 review-sample: ## 감정별 층화 + 모델 불일치 우선 280건 추출

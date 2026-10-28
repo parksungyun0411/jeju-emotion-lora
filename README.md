@@ -138,22 +138,33 @@ python -m jeju_lora.run_original --split sentence --steps koelectra ensemble --o
 python -m jeju_lora.run_original --split row --out runs/original_row
 
 # test 확률(npz)을 row_id에 붙여 채점. α는 runs/*/step7_ensemble_report.txt에 원 코드가 고른 값
+# --device·--precision은 json에 남기는 기록용 값이다(학습한 장치·정밀도)
 python -m jeju_lora.encoder_eval --test data/splits_sentence/test.jsonl \
   --dual-npz runs/original_sentence/step3_dual_probs.npz \
   --single-npz runs/original_sentence/branch1_koelectra_probs.npz --alpha 0.5 \
-  --gold reviews/relabel_claude/gold.jsonl
+  --gold reviews/relabel_claude/gold.jsonl \
+  --device "Dual: mps (Apple M4), KoELECTRA: Tesla T4" --precision "Dual: bf16-autocast, KoELECTRA: fp32"
 python -m jeju_lora.encoder_eval --test data/splits_sentence/test.jsonl \
   --dual-npz runs/original_sentence/step3_dual_probs.npz \
-  --gold reviews/relabel_claude/gold.jsonl --tag encoder_dual_sentence
+  --gold reviews/relabel_claude/gold.jsonl --tag encoder_dual_sentence \
+  --device "mps (Apple M4)" --precision bf16-autocast
 python -m jeju_lora.encoder_eval --test data/splits_sentence/test.jsonl \
   --dual-npz runs/original_sentence/branch1_koelectra_probs.npz \
-  --gold reviews/relabel_claude/gold.jsonl --tag encoder_koelectra_sentence
+  --gold reviews/relabel_claude/gold.jsonl --tag encoder_koelectra_sentence \
+  --device "Tesla T4" --precision fp32
 python -m jeju_lora.encoder_eval --test data/splits/test.jsonl \
   --dual-npz runs/original_row/step3_dual_probs.npz \
-  --single-npz runs/original_row/branch1_koelectra_probs.npz --alpha 0.55 --tag encoder_ensemble_row
+  --single-npz runs/original_row/branch1_koelectra_probs.npz --alpha 0.55 --tag encoder_ensemble_row \
+  --device "Tesla T4" --precision fp32
+python -m jeju_lora.encoder_eval --test data/splits/test.jsonl \
+  --dual-npz runs/original_row/step3_dual_probs.npz --tag encoder_dual_row \
+  --device "Tesla T4" --precision fp32
+python -m jeju_lora.encoder_eval --test data/splits/test.jsonl \
+  --dual-npz runs/original_row/branch1_koelectra_probs.npz --tag encoder_koelectra_row \
+  --device "Tesla T4" --precision fp32
 ```
 
-json의 `device`·`precision` 칸은 기록용 옵션 `--device`·`--precision`으로 적었습니다(예: `--device "Tesla T4" --precision fp32`). 앙상블 두 줄은 `make original SPLIT=sentence|row`(MPS에서는 `AMP=1`)와 `make encoder-eval SPLIT=sentence|row ALPHA=… GOLD=…`로도 돌릴 수 있습니다. 위 채점 네 줄을 저장해 둔 npz로 다시 돌려 [reports/metrics/](reports/metrics/)의 인코더 값(macro-F1·정확도·재라벨 F1)과 같게 나오는 것을 2026-10-28에 확인했습니다.
+앙상블 채점은 `make original SPLIT=sentence|row`(MPS에서는 `AMP=1`)와 `make encoder-eval SPLIT=sentence|row ALPHA=… GOLD=… DEVICE=… PRECISION=…`로도 돌릴 수 있습니다. 위 채점 여섯 줄을 저장해 둔 npz로 다시 돌리면 [reports/metrics/](reports/metrics/)의 인코더 json과 같게 나오는 것을 2026-10-28에 확인했습니다.
 
 GPU 단계는 `scripts/colab_t4.sh`로 단계별로 돌립니다(Colab VM과 Kaggle 커널에서 같은 스크립트, GPU 두 장이면 `PORT`로 vLLM 포트를 나눕니다). 서빙·양자화 venv 위치는 `SERVE_VENV`·`QUANT_VENV`로 바꿉니다. Colab은 기본값(`/content/venv-serve`, `/content/venv-quant`)을, Kaggle은 `PY=<기본 파이썬> SERVE_VENV=/tmp/vs QUANT_VENV=/tmp/vq`를 썼습니다. Kaggle에서는 `setup` 단계를 쓰지 않고, 학습 패키지를 `uv pip install --system --break-system-packages`로 기본 파이썬에 넣고 두 venv를 커널 스크립트에서 직접 만들었습니다([docs/kaggle_t4.md](docs/kaggle_t4.md) 환경·문제 1).
 
