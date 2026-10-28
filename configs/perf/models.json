@@ -1,0 +1,50 @@
+{
+  "rl": [
+    "--model",
+    "klue/roberta-large",
+    "--revision",
+    "28d911204e9022eda172571ca8cc61eaffd942f7"
+  ],
+  "xlmr": [
+    "--model",
+    "FacebookAI/xlm-roberta-large",
+    "--revision",
+    "c23d21b0620b635a76227c604d44e43a9f0ee389"
+  ],
+  "kc": [
+    "--model",
+    "beomi/KcELECTRA-base-v2022",
+    "--revision",
+    "87285578b4686b6d190abd40e947a2a416add6de"
+  ],
+  "ko": [
+    "--model",
+    "monologg/koelectra-base-v3-discriminator",
+    "--revision",
+    "68b30cd259f34a4b5aa8786392612ba2a2617fcc"
+  ],
+  "deb": [
+    "--model",
+    "team-lucid/deberta-v3-base-korean",
+    "--revision",
+    "47a3b00828c5dc2b8b080c6738ef7a58ebd419d5"
+  ],
+  "mdeb": [
+    "--model",
+    "microsoft/mdeberta-v3-base",
+    "--revision",
+    "a0484667b22365f84929a935b5e50a51f71f159d"
+  ],
+  "k2": [
+    "--model",
+    "kakaocorp/kanana-1.5-2.1b-instruct-2505",
+    "--revision",
+    "7df4bc35ccd610e451809d7106e1c3cf82bfd44c"
+  ],
+  "k8": [
+    "--model",
+    "kakaocorp/kanana-1.5-8b-instruct-2505",
+    "--revision",
+    "c963a5f4f6496c749f94064a20b33028b0db9f19"
+  ]
+}
