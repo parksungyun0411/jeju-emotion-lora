@@ -70,6 +70,8 @@ def setup():
         sys.exit(1)
     os.environ.update(
         HF_HOME="/tmp/hf",
+        # 길이별 묶음은 배치 모양이 들쭉날쭉해 캐시 할당기 조각화로 OOM이 날 수 있다
+        PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True",
         PYTHONUNBUFFERED="1",
         TOKENIZERS_PARALLELISM="false",
         USE_TF="0",

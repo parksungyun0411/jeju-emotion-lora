@@ -64,6 +64,31 @@ def llm_text(row: dict, mode: str) -> str:
     return "\n".join(lines)
 
 
+def length_grouped_batches(
+    lengths: list[int], batch: int, seed: int, mega: int = 50
+) -> list[list[int]]:
+    """길이가 비슷한 표본끼리 학습 배치를 묶어 패딩을 줄인다(배치 수는 ceil(N/batch) 그대로).
+
+    섞은 뒤 mega×batch개씩 끊어 그 안에서 길이순으로 정렬해 batch개씩 자르고, 배치 순서를
+    다시 섞는다. 가장 긴 배치를 맨 앞에 둬 메모리 부족이 첫 step에서 드러나게 한다.
+    """
+    import numpy as np
+
+    lens = np.asarray(lengths)
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(len(lens))
+    size = mega * batch
+    batches = []
+    for s in range(0, len(perm), size):
+        chunk = perm[s : s + size]
+        chunk = chunk[np.argsort(-lens[chunk], kind="stable")]
+        batches += [chunk[i : i + batch].tolist() for i in range(0, len(chunk), batch)]
+    batches = [batches[i] for i in rng.permutation(len(batches))]
+    longest = int(np.argmax([lens[b].max() for b in batches]))
+    batches[0], batches[longest] = batches[longest], batches[0]
+    return batches
+
+
 def strip_labels(rows: list[dict]) -> list[dict]:
     """test를 커널에 올릴 때 라벨을 뺀다. 커널 안에서는 test 지표를 계산할 수 없게 한다."""
     return [{"row_id": r["row_id"], "jeju": r["jeju"], "std": r["std"]} for r in rows]

@@ -29,7 +29,14 @@ import numpy as np
 
 from jeju_lora.data import read_jsonl
 from jeju_lora.labels import LABEL_NAMES, NUM_LABELS
-from jeju_lora.perf.inputs import INPUT_MODES, TRAIN_MODES, llm_text, select_train, text_pair
+from jeju_lora.perf.inputs import (
+    INPUT_MODES,
+    TRAIN_MODES,
+    length_grouped_batches,
+    llm_text,
+    select_train,
+    text_pair,
+)
 
 LLM_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 
@@ -59,6 +66,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--ema", type=float, default=0.0, help="EMA 감쇠 (0이면 끔, 평가는 EMA 가중치)")
     p.add_argument("--hard-mining", type=float, default=0.0, help="직전 epoch 손실 상위 비율")
     p.add_argument("--hard-weight", type=float, default=2.0)
+    p.add_argument(
+        "--group-by-length",
+        action="store_true",
+        help="길이가 비슷한 표본끼리 배치를 묶는다(패딩 감소). 하드 마이닝 epoch에는 쓰지 않는다",
+    )
     p.add_argument("--dropout", type=float, default=0.1, help="dual 헤드 드롭아웃")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--evals-per-epoch", type=int, default=1)
@@ -381,14 +393,15 @@ def per_class_f1(y, pred) -> dict:
     return {LABEL_NAMES[i]: round(float(x), 4) for i, x in enumerate(v)}
 
 
+def item_length(it: dict) -> int:
+    return sum(len(it[k]) for k in ("input_ids", "jeju_ids", "std_ids") if k in it)
+
+
 def eval_loader(items: list[dict], args, collate):
     """길이순으로 묶어 패딩을 줄이고, 결과는 원래 순서로 되돌린다."""
     from torch.utils.data import DataLoader
 
-    def length(it):
-        return sum(len(it[k]) for k in ("input_ids", "jeju_ids", "std_ids") if k in it)
-
-    order = sorted(range(len(items)), key=lambda i: length(items[i]))
+    order = sorted(range(len(items)), key=lambda i: item_length(items[i]))
     loader = DataLoader([items[i] for i in order], batch_size=args.eval_batch, collate_fn=collate)
     return loader, np.argsort(order)
 
@@ -471,6 +484,7 @@ def train(args) -> dict:
     gen = torch.Generator().manual_seed(args.seed)
     sample_w = np.ones(len(tr_items))
     last_loss = np.zeros(len(tr_items))
+    tr_lengths = [item_length(it) for it in tr_items]
 
     history, val_logits, test_logits = [], [], []
     print(f"[{args.name}] loaded in {(time.time() - t0) / 60:.1f}m", flush=True)
@@ -486,9 +500,17 @@ def train(args) -> dict:
             sampler = WeightedRandomSampler(
                 sample_w.tolist(), len(tr_items), replacement=True, generator=gen
             )
+            loader = DataLoader(
+                tr_items, batch_size=args.batch, sampler=sampler, collate_fn=collate
+            )
+        elif args.group_by_length:
+            batches = length_grouped_batches(tr_lengths, args.batch, args.seed + epoch)
+            loader = DataLoader(tr_items, batch_sampler=batches, collate_fn=collate)
         else:
             sampler = RandomSampler(tr_items, generator=gen)
-        loader = DataLoader(tr_items, batch_size=args.batch, sampler=sampler, collate_fn=collate)
+            loader = DataLoader(
+                tr_items, batch_size=args.batch, sampler=sampler, collate_fn=collate
+            )
         run_loss, run_n = 0.0, 0
         for bi, batch in enumerate(loader):
             batch = {k: v.to(device) for k, v in batch.items()}

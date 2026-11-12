@@ -48,6 +48,23 @@ def test_llm_text_includes_requested_fields():
     assert "제주어" not in inputs.llm_text(row, "std")
 
 
+def test_length_grouped_batches_partition_and_padding():
+    rng = np.random.default_rng(0)
+    lengths = rng.integers(10, 200, 1037).tolist()
+    batches = inputs.length_grouped_batches(lengths, 32, seed=3, mega=5)
+    flat = sorted(i for b in batches for i in b)
+    assert flat == list(range(len(lengths)))  # 모든 표본을 정확히 한 번
+    assert len(batches) == -(-len(lengths) // 32)  # 배치 수는 ceil(N/batch) 그대로
+    lens = np.asarray(lengths)
+    assert lens[batches[0]].max() == lens.max()  # 가장 긴 배치가 맨 앞
+    grouped = np.mean([lens[b].max() for b in batches])
+    perm = rng.permutation(len(lens))
+    rand = np.mean([lens[perm[i : i + 32]].max() for i in range(0, len(lens), 32)])
+    assert grouped < 0.8 * rand  # 패딩이 줄어든다
+    assert batches == inputs.length_grouped_batches(lengths, 32, seed=3, mega=5)
+    assert batches != inputs.length_grouped_batches(lengths, 32, seed=4, mega=5)
+
+
 def test_strip_labels_and_normalize_ws():
     rows = [{"row_id": 1, "jeju": "a", "std": "b", "label": 2}]
     assert inputs.strip_labels(rows) == [{"row_id": 1, "jeju": "a", "std": "b"}]
@@ -80,6 +97,7 @@ def test_class_weights():
 def test_parse_args_defaults():
     a = parse_args(["--name", "x", "--model", "m", "--data-dir", "d", "--out-dir", "o"])
     assert (a.arch, a.input, a.train_mode, a.fp16) == ("seqcls", "pair", "dedup", True)
+    assert a.group_by_length is False
 
 
 def test_macro_f1_matches_sklearn():
