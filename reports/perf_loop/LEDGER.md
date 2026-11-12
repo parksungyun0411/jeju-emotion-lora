@@ -13,7 +13,8 @@
 | 브랜치·작업 트리 | `perf-loop` · `/Users/psyreo/Documents/GitHub/personal/jeju-emotion-lora-perf` (perf-loop만 push, main은 건드리지 않음) |
 | test 평가 | 0회 (루프 종료 때 1회만) |
 
-상태 (2026-11-12): R1 결과 수거·집계 끝(`r1_val.json`). R2 커널 `jeju-perf-r2`를 올린다(아래 R2 행·GPU 표에 시각과 실제 시간).
+상태 (2026-11-12): R1 결과 수거·집계 끝(`r1_val.json`). R2 커널 `jeju-perf-r2`(코드 f06aa46)를 01:04 UTC(10:04 KST)에 올렸고 01:06 UTC에 RUNNING. 상한 10.5 h라 늦어도 11:45 UTC(20:45 KST)쯤 끝난다.
+올리기 전 점검(맥, 학습 없음): 길이별 묶음 DataLoader를 실제 collate로 돌려 라벨·idx 일치·배치 수 1,148·grad-accum 1·2의 step 수 확인, 작은 랜덤 Llama로 비양자화 LoRA+grad-ckpt에서 LoRA_B·score가 그래디언트를 받는 것 확인(transformers 5.18.0·peft 0.21.1, CPU).
 
 이어하기
 1. `kaggle kernels status seongyunpark0411/jeju-perf-r2` → COMPLETE면
@@ -75,7 +76,7 @@
 | jeju-perf-smoke | 2026-10-28 02:53 | 0.2 | 0.2 |
 | jeju-perf-r1 | 2026-10-28 03:13 | 4.0 (wall_min 240.5) | 4.2 |
 | (주 2026-11-07 시작) | | | |
-| jeju-perf-r2 | (올릴 때 채움) | (상한 10.5, 끝나면 wall_min으로) | |
+| jeju-perf-r2 | 2026-11-12 01:04 | (01:06 UTC RUNNING 확인, 상한 10.5 → 늦어도 11:45 UTC쯤 끝. 끝나면 wall_min으로) | |
 
 ## 라운드
 
@@ -83,7 +84,7 @@
 |---|---|---|---|---|---:|---|---|---|
 | R0 | 10-28 | 학습기·커널 경로가 T4에서 돈다 | 작은 표본(512~3,200행)으로 10개 경로 점검 | jeju-perf-smoke (ec76255) | 0.2 | 점검용(val 앞 256~512건) — 성능 비교에 쓰지 않음 | — | 실패 4: kanana-2.1b 설정 검증(토크나이저가 우회보다 먼저 불림)·mDeBERTa fp16 체크포인트(GradScaler)·DeBERTa-ko 토크나이저(transformers 5 Unigram 재구성) → 3ce6c37에서 고침. 참고: kanana-8b QLoRA는 train 960행만으로 val 앞 256건 0.42 |
 | R1 | 10-28 | 인코더·LLM 기준선, 입력(jeju·std·pair) 비교 | 11개 경로(spec `r1`), 4.0 h 상한 | jeju-perf-r1 (3ce6c37) | 4.0 | 단일 최고 k8 pair **0.5526**(편향 oof 0.5641) · 앙상블+편향 in-sample 0.5811 / oof **0.5632**. 앙상블 클래스별: 중립 .604·행복 .726·슬픔 .635·분노 .540·놀람 .561·공포 .522·혐오 .481 | LLM·std 입력 유지, jeju 단독·Dual·DeBERTa pair 폐기 | 아래 'R1 실행별'. k2 OOM, XLM-R·KoELECTRA pair·mDeBERTa SKIP |
-| R2 | 11-12 | (1) LLM은 1 epoch를 끝까지 돌리면 오른다 (2) std 입력이 LLM에서도 낫다 (3) 인코더는 R-Drop·LLRD·EMA로 오른다 (4) 시드·입력·모델을 바꾼 멤버가 앙상블 oof를 올린다 | 아래 'R2 구성' | jeju-perf-r2 | (상한 10.5) | (결과 대기) | | |
+| R2 | 11-12 | (1) LLM은 1 epoch를 끝까지 돌리면 오른다 (2) std 입력이 LLM에서도 낫다 (3) 인코더는 R-Drop·LLRD·EMA로 오른다 (4) 시드·입력·모델을 바꾼 멤버가 앙상블 oof를 올린다 | 아래 'R2 구성' | jeju-perf-r2 (f06aa46) | (상한 10.5) | (결과 대기) | | |
 
 ### R1 실행별 (val 5,248건, 평가 시점은 val 최고, `reports/perf_loop/r1_val.json`)
 
